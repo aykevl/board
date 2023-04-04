@@ -32,7 +32,7 @@ type sdlscreen struct {
 	keyeventsLock sync.Mutex
 }
 
-var screen = &sdlscreen{scale: 3}
+var screen = &sdlscreen{scale: 1}
 
 var sdlStart sync.Once
 
@@ -62,7 +62,9 @@ func (d display0Config) Configure() Displayer[pixel.RGB888] {
 	// Create the SDL window.
 	sdl.Do(func() {
 		var err error
-		screen.window, err = sdl.CreateWindow(Simulator.WindowTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(Simulator.WindowWidth*screen.scale), int32(Simulator.WindowHeight*screen.scale), sdl.WINDOW_SHOWN)
+		sdl.SetHint("SDL_VIDEODRIVER", "wayland,x11")
+		sdl.Init(sdl.INIT_EVERYTHING)
+		screen.window, err = sdl.CreateWindow(Simulator.WindowTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(Simulator.WindowWidth*screen.scale), int32(Simulator.WindowHeight*screen.scale), sdl.WINDOW_SHOWN|sdl.WINDOW_ALLOW_HIGHDPI)
 		if err != nil {
 			panic("failed to create SDL window: " + err.Error())
 		}
