@@ -169,6 +169,10 @@ func decodeSDLKeyboardEvent(event *sdl.KeyboardEvent) KeyEvent {
 		e = KeyUp
 	case sdl.K_DOWN:
 		e = KeyDown
+	case sdl.K_ESCAPE:
+		e = KeyEscape
+	case sdl.K_RETURN:
+		e = KeyEnter
 	case sdl.K_SPACE:
 		e = KeySpace
 	case sdl.K_a:

@@ -29,11 +29,17 @@ type Key uint8
 const (
 	NoKey = iota
 
+	// Special keys.
+	KeyEscape
+
+	// Navigation keys.
 	KeyLeft
 	KeyRight
 	KeyUp
 	KeyDown
 
+	// Character keys.
+	KeyEnter
 	KeySpace
 	KeyA
 	KeyB
