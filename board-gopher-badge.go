@@ -65,6 +65,10 @@ func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
 	return &display
 }
 
+func (d display0Config) PhysicalSize() (width, height int) {
+	return 49, 37 // size in millimeters
+}
+
 var Buttons = &gpioButtons{}
 
 type gpioButtons struct {

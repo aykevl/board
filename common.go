@@ -8,10 +8,12 @@ var Simulator = struct {
 	WindowTitle  string
 	WindowWidth  int
 	WindowHeight int
+	WindowPPI    int
 }{
 	WindowTitle:  "Simulator",
 	WindowWidth:  240,
 	WindowHeight: 240,
+	WindowPPI:    120, // common on many modern displays (for example Retina is 254 / 2 = 127)
 }
 
 type Displayer[T pixel.Color] interface {

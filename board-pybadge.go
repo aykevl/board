@@ -40,7 +40,7 @@ func (d display0Config) Size() (width, height int) {
 }
 
 func (d display0Config) PhysicalSize() (width, height int) {
-	return 29, 36 // size in millimeters
+	return 36, 29 // size in millimeters
 }
 
 func (d display0Config) Configure() Displayer[pixel.RGB565BE] {

@@ -82,6 +82,14 @@ func (d display0Config) Configure() Displayer[pixel.RGB888] {
 	return screen
 }
 
+// Physical size in millimeters.
+func (d display0Config) PhysicalSize() (width, height int) {
+	// numPixels / PPI * 25.4 (where 25.4 the number of millimeters in an inch)
+	width = int(float32(Simulator.WindowWidth) / float32(Simulator.WindowPPI) * 25.4)
+	height = int(float32(Simulator.WindowHeight) / float32(Simulator.WindowPPI) * 25.4)
+	return
+}
+
 func (s *sdlscreen) Display() error {
 	sdl.Do(func() {
 		for {
