@@ -35,7 +35,7 @@ var Display0 display0Config
 
 type display0Config struct{}
 
-func (d display0Config) Size() (width, height int) {
+func (d display0Config) Size() (width, height int16) {
 	return 160, 128
 }
 

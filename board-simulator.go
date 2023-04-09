@@ -82,6 +82,11 @@ func (d display0Config) Configure() Displayer[pixel.RGB888] {
 	return screen
 }
 
+// Size of the board in pixels.
+func (d display0Config) Size() (width, height int16) {
+	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)
+}
+
 // Physical size in millimeters.
 func (d display0Config) PhysicalSize() (width, height int) {
 	// numPixels / PPI * 25.4 (where 25.4 the number of millimeters in an inch)
