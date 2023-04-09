@@ -18,6 +18,7 @@ import (
 // Default devices.
 var (
 	Display = mainDisplay{}
+	Buttons = buttonsConfig{}
 )
 
 type mainDisplay struct{}
@@ -139,8 +140,6 @@ func (s *sdlscreen) Size() (width, height int16) {
 }
 
 type buttonsConfig struct{}
-
-var Buttons buttonsConfig
 
 func (b buttonsConfig) Configure() {
 }

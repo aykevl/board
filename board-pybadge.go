@@ -13,6 +13,7 @@ import (
 
 var (
 	Display = mainDisplay{}
+	Buttons = &buttonsConfig{}
 )
 
 type mainDisplay struct{}
@@ -40,22 +41,18 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	return &display
 }
 
-var shifterButtons shifter.Device
-
-type buttonsConfig struct{}
-
-var Buttons buttonsConfig
-
-var lastButtonState, currentButtonState uint8
-
-func (b buttonsConfig) Configure() {
-	shifterButtons = shifter.NewButtons()
-	shifterButtons.Configure()
+type buttonsConfig struct {
+	shifter.Device
+	lastState, currentState uint8
 }
 
-func (b buttonsConfig) ReadInput() {
-	state, _ := shifterButtons.ReadInput()
-	currentButtonState = state
+func (b *buttonsConfig) Configure() {
+	b.Device = shifter.NewButtons()
+	b.Device.Configure()
+}
+
+func (b *buttonsConfig) ReadInput() {
+	b.currentState, _ = b.Device.ReadInput()
 }
 
 var codes = [8]Key{
@@ -69,10 +66,10 @@ var codes = [8]Key{
 	KeyB,
 }
 
-func (b buttonsConfig) NextEvent() KeyEvent {
+func (b *buttonsConfig) NextEvent() KeyEvent {
 	// The xor between the previous state and the current state is the buttons
 	// that changed.
-	change := currentButtonState ^ lastButtonState
+	change := b.currentState ^ b.lastState
 	if change == 0 {
 		return NoKeyEvent
 	}
@@ -80,15 +77,15 @@ func (b buttonsConfig) NextEvent() KeyEvent {
 	// Find the index of the button with the lowest index that changed state.
 	index := bits.TrailingZeros32(uint32(change))
 	e := KeyEvent(codes[index])
-	if currentButtonState&(1<<index) == 0 {
+	if b.currentState&(1<<index) == 0 {
 		// The button state change was from 1 to 0, so it was released.
 		e |= KeyReleased
 	}
 
 	// This button event was read, so mark it as such.
 	// By toggling the bit, the bit will be set to the value that is currently
-	// in currentButtonState.
-	lastButtonState ^= (1 << index)
+	// in currentState.
+	b.lastState ^= (1 << index)
 
 	return e
 }

@@ -12,6 +12,7 @@ import (
 
 var (
 	Display = mainDisplay{}
+	Buttons = &gbaButtons{}
 )
 
 type mainDisplay struct{}
@@ -29,8 +30,6 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
 	display.Configure()
 	return display
 }
-
-var Buttons = &gbaButtons{}
 
 type gbaButtons struct {
 	state         uint16

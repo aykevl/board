@@ -12,6 +12,7 @@ import (
 
 var (
 	Display = mainDisplay{}
+	Buttons = &gpioButtons{}
 )
 
 type mainDisplay struct{}
@@ -60,8 +61,6 @@ func (d mainDisplay) Size() (width, height int16) {
 func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 49, 37 // size in millimeters
 }
-
-var Buttons = &gpioButtons{}
 
 type gpioButtons struct {
 	state         uint8
