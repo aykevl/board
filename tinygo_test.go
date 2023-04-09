@@ -13,6 +13,7 @@ var boards = []string{
 	"gopher-badge",
 	"mch2022",
 	"pybadge",
+	"pyportal",
 	"simulator",
 }
 
