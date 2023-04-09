@@ -16,3 +16,11 @@ func (b noButtons) ReadInput() {
 func (b noButtons) NextEvent() KeyEvent {
 	return NoKeyEvent
 }
+
+// Dummy touch object that doesn't read any input.
+// Used for displays without touch capabilities.
+type noTouch struct{}
+
+func (t noTouch) ReadTouch() []TouchPoint {
+	return nil
+}

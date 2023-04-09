@@ -31,6 +31,10 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
 	return display
 }
 
+func (d mainDisplay) ConfigureTouch() TouchInput {
+	return noTouch{}
+}
+
 type gbaButtons struct {
 	state         uint16
 	previousState uint16

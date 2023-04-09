@@ -62,6 +62,10 @@ func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 49, 37 // size in millimeters
 }
 
+func (d mainDisplay) ConfigureTouch() TouchInput {
+	return noTouch{}
+}
+
 type gpioButtons struct {
 	state         uint8
 	previousState uint8

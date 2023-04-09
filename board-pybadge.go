@@ -41,6 +41,10 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	return &display
 }
 
+func (d mainDisplay) ConfigureTouch() TouchInput {
+	return noTouch{}
+}
+
 type buttonsConfig struct {
 	shifter.Device
 	lastState, currentState uint8

@@ -42,3 +42,7 @@ func (d mainDisplay) Size() (width, height int16) {
 func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 49, 37 // 48.96 x 36.72
 }
+
+func (d mainDisplay) ConfigureTouch() TouchInput {
+	return noTouch{}
+}

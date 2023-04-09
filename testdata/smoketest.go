@@ -13,6 +13,7 @@ func main() {
 	var _ interface {
 		Size() (int16, int16)
 		PhysicalSize() (int, int)
+		ConfigureTouch() board.TouchInput
 	} = board.Display
 
 	// Assert that board.Buttons uses the usual interface.

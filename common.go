@@ -46,6 +46,24 @@ type Displayer[T pixel.Color] interface {
 	Display() error
 }
 
+// TouchInput reads the touch screen (resistive/capacitive) on a display and
+// returns the current list of touch points.
+type TouchInput interface {
+	ReadTouch() []TouchPoint
+}
+
+// A single touch point on the screen, from a finger, stylus, or something like
+// that.
+type TouchPoint struct {
+	// ID for this touch point. New touch events get a monotonically
+	// incrementing ID. Because it is a uint32 (and it's unlikely a screen will
+	// be touched more than 4 billion times), it can be treated as a unique ID.
+	ID uint32
+
+	// X and Y pixel coordinates.
+	X, Y int16
+}
+
 // Key is a single keyboard key (not to be confused with a single character).
 type Key uint8
 

@@ -32,6 +32,9 @@ type sdlscreen struct {
 	scale         int
 	keyevents     []KeyEvent
 	keyeventsLock sync.Mutex
+	touchID       uint32
+	touches       [1]TouchPoint
+	touchesLock   sync.Mutex
 }
 
 var screen = &sdlscreen{scale: 1}
@@ -52,8 +55,28 @@ func startSDL() {
 				}
 			})
 		}()
+		<-mainRunning
+
+		// Create the SDL window.
+		sdl.Do(func() {
+			var err error
+			sdl.SetHint("SDL_VIDEODRIVER", "wayland,x11")
+			sdl.Init(sdl.INIT_EVERYTHING)
+			screen.window, err = sdl.CreateWindow(Simulator.WindowTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(Simulator.WindowWidth*screen.scale), int32(Simulator.WindowHeight*screen.scale), sdl.WINDOW_SHOWN|sdl.WINDOW_ALLOW_HIGHDPI)
+			if err != nil {
+				panic("failed to create SDL window: " + err.Error())
+			}
+
+			screen.surface, err = screen.window.GetSurface()
+			if err != nil {
+				panic("failed to create SDL surface: " + err.Error())
+			}
+
+			// Initialize display to black.
+			screen.surface.FillRect(nil, 0)
+			screen.window.UpdateSurface()
+		})
 	})
-	<-mainRunning
 }
 
 // Configure returns a new display ready to draw on.
@@ -61,29 +84,7 @@ func startSDL() {
 // Boards without a display will return nil.
 func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	// TODO: use something like golang.org/x/exp/shiny to avoid CGo.
-
 	startSDL()
-
-	// Create the SDL window.
-	sdl.Do(func() {
-		var err error
-		sdl.SetHint("SDL_VIDEODRIVER", "wayland,x11")
-		sdl.Init(sdl.INIT_EVERYTHING)
-		screen.window, err = sdl.CreateWindow(Simulator.WindowTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(Simulator.WindowWidth*screen.scale), int32(Simulator.WindowHeight*screen.scale), sdl.WINDOW_SHOWN|sdl.WINDOW_ALLOW_HIGHDPI)
-		if err != nil {
-			panic("failed to create SDL window: " + err.Error())
-		}
-
-		screen.surface, err = screen.window.GetSurface()
-		if err != nil {
-			panic("failed to create SDL surface: " + err.Error())
-		}
-
-		// Initialize display to black.
-		screen.surface.FillRect(nil, 0)
-		screen.window.UpdateSurface()
-	})
-
 	return screen
 }
 
@@ -98,6 +99,12 @@ func (d mainDisplay) PhysicalSize() (width, height int) {
 	width = int(float32(Simulator.WindowWidth) / float32(Simulator.WindowPPI) * 25.4)
 	height = int(float32(Simulator.WindowHeight) / float32(Simulator.WindowPPI) * 25.4)
 	return
+}
+
+func (d mainDisplay) ConfigureTouch() TouchInput {
+	startSDL()
+
+	return sdltouch{}
 }
 
 func (s *sdlscreen) Display() error {
@@ -117,6 +124,34 @@ func (s *sdlscreen) Display() error {
 				keyevent := decodeSDLKeyboardEvent(event)
 				screen.keyevents = append(screen.keyevents, keyevent)
 				screen.keyeventsLock.Unlock()
+			case *sdl.MouseButtonEvent:
+				// Only capture left clicks with a mouse.
+				if event.Button == sdl.BUTTON_LEFT {
+					screen.touchesLock.Lock()
+					switch event.Type {
+					case sdl.MOUSEBUTTONDOWN:
+						s.touchID++
+						screen.touches[0] = TouchPoint{
+							ID: s.touchID,
+							X:  int16(event.X),
+							Y:  int16(event.Y),
+						}
+					case sdl.MOUSEBUTTONUP:
+						screen.touches[0] = TouchPoint{} // no active touch
+					}
+					screen.touchesLock.Unlock()
+				}
+			case *sdl.MouseMotionEvent:
+				// Only capture dragging with the left mouse button.
+				if event.Type == sdl.MOUSEMOTION && event.State&sdl.BUTTON_LEFT != 0 {
+					screen.touchesLock.Lock()
+					screen.touches[0] = TouchPoint{
+						ID: s.touchID,
+						X:  int16(event.X),
+						Y:  int16(event.Y),
+					}
+					screen.touchesLock.Unlock()
+				}
 			}
 		}
 		screen.window.UpdateSurface()
@@ -143,6 +178,18 @@ func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 func (s *sdlscreen) Size() (width, height int16) {
 	bounds := s.surface.Bounds().Size()
 	return int16(bounds.X / s.scale), int16(bounds.Y / s.scale)
+}
+
+type sdltouch struct{}
+
+func (s sdltouch) ReadTouch() []TouchPoint {
+	screen.touchesLock.Lock()
+	defer screen.touchesLock.Unlock()
+
+	if screen.touches[0].ID != 0 {
+		return screen.touches[:1]
+	}
+	return nil
 }
 
 type buttonsConfig struct{}
