@@ -15,22 +15,6 @@ var (
 	Display = Display0
 )
 
-type internalSPI0 struct{ configured bool }
-
-var InternalSPI0 = &internalSPI0{}
-
-func (spi *internalSPI0) Get() machine.SPI {
-	if !spi.configured {
-		machine.SPI1.Configure(machine.SPIConfig{
-			SCK:       machine.SPI1_SCK_PIN,
-			SDO:       machine.SPI1_SDO_PIN,
-			SDI:       machine.SPI1_SDI_PIN,
-			Frequency: 15_000_000, // datasheet for st7735 says 66ns (~15.15MHz) is the max speed
-		})
-	}
-	return machine.SPI1
-}
-
 var Display0 display0Config
 
 type display0Config struct{}
@@ -44,8 +28,14 @@ func (d display0Config) PhysicalSize() (width, height int) {
 }
 
 func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
-	spi := InternalSPI0.Get()
-	display := st7735.New(spi, machine.TFT_RST, machine.TFT_DC, machine.TFT_CS, machine.TFT_LITE)
+	machine.SPI1.Configure(machine.SPIConfig{
+		SCK:       machine.SPI1_SCK_PIN,
+		SDO:       machine.SPI1_SDO_PIN,
+		SDI:       machine.SPI1_SDI_PIN,
+		Frequency: 15_000_000, // datasheet for st7735 says 66ns (~15.15MHz) is the max speed
+	})
+
+	display := st7735.New(machine.SPI1, machine.TFT_RST, machine.TFT_DC, machine.TFT_CS, machine.TFT_LITE)
 	display.Configure(st7735.Config{
 		Rotation: st7735.ROTATION_90,
 	})

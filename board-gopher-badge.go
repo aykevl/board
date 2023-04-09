@@ -14,38 +14,28 @@ var (
 	Display = Display0
 )
 
-type internalSPI0 struct{ configured bool }
-
-var InternalSPI0 = &internalSPI0{}
-
-func (spi *internalSPI0) Get() *machine.SPI {
-	if !spi.configured {
-		machine.SPI0.Configure(machine.SPIConfig{
-			// Mode 3 appears to be compatible with mode 0, but is slightly
-			// faster: each byte takes 9 clock cycles instead of 10.
-			// TODO: try to eliminate this last bit? Two ideas:
-			//   - use 16-bit transfers, to halve the time the gap takes
-			//   - use PIO, which apparently is able to send data without gap
-			// It would seem like TI mode would be faster (it has no gap), but
-			// it samples data on the falling edge instead of on the rising edge
-			// like the st7789 expects.
-			Mode:      3,
-			SCK:       machine.SPI0_SCK_PIN,
-			SDO:       machine.SPI0_SDO_PIN,
-			SDI:       machine.SPI0_SDI_PIN,
-			Frequency: 62_500_000, // datasheet for st7789 says 16ns (62.5MHz) is the max clock speed
-		})
-	}
-	return machine.SPI0
-}
-
 var Display0 display0Config
 
 type display0Config struct{}
 
 func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
-	spi := InternalSPI0.Get()
-	display := st7789.New(spi,
+	machine.SPI0.Configure(machine.SPIConfig{
+		// Mode 3 appears to be compatible with mode 0, but is slightly
+		// faster: each byte takes 9 clock cycles instead of 10.
+		// TODO: try to eliminate this last bit? Two ideas:
+		//   - use 16-bit transfers, to halve the time the gap takes
+		//   - use PIO, which apparently is able to send data without gap
+		// It would seem like TI mode would be faster (it has no gap), but
+		// it samples data on the falling edge instead of on the rising edge
+		// like the st7789 expects.
+		Mode:      3,
+		SCK:       machine.SPI0_SCK_PIN,
+		SDO:       machine.SPI0_SDO_PIN,
+		SDI:       machine.SPI0_SDI_PIN,
+		Frequency: 62_500_000, // datasheet for st7789 says 16ns (62.5MHz) is the max clock speed
+	})
+
+	display := st7789.New(machine.SPI0,
 		machine.TFT_RST,       // TFT_RESET
 		machine.TFT_WRX,       // TFT_DC
 		machine.TFT_CS,        // TFT_CS
