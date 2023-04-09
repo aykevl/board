@@ -24,10 +24,12 @@ var flagXtensa = flag.Bool("xtensa", false, "test Xtensa based boards")
 
 func TestBoards(t *testing.T) {
 	for _, board := range boards {
+		board := board
 		t.Run(board, func(t *testing.T) {
 			if isXtensa(board) && !*flagXtensa {
 				t.Skip("skipping Xtensa board:", board)
 			}
+			t.Parallel()
 			outbuf := &bytes.Buffer{}
 			var cmd *exec.Cmd
 			if board == "simulator" {
