@@ -17,12 +17,10 @@ import (
 
 // Default devices.
 var (
-	Display = Display0
+	Display = mainDisplay{}
 )
 
-type display0Config struct{}
-
-var Display0 display0Config
+type mainDisplay struct{}
 
 type sdlscreen struct {
 	surface       *sdl.Surface
@@ -54,7 +52,7 @@ func startSDL() {
 	<-mainRunning
 }
 
-func (d display0Config) Configure() Displayer[pixel.RGB888] {
+func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	// TODO: use something like golang.org/x/exp/shiny to avoid CGo.
 
 	startSDL()
@@ -83,12 +81,12 @@ func (d display0Config) Configure() Displayer[pixel.RGB888] {
 }
 
 // Size of the board in pixels.
-func (d display0Config) Size() (width, height int16) {
+func (d mainDisplay) Size() (width, height int16) {
 	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)
 }
 
 // Physical size in millimeters.
-func (d display0Config) PhysicalSize() (width, height int) {
+func (d mainDisplay) PhysicalSize() (width, height int) {
 	// numPixels / PPI * 25.4 (where 25.4 the number of millimeters in an inch)
 	width = int(float32(Simulator.WindowWidth) / float32(Simulator.WindowPPI) * 25.4)
 	height = int(float32(Simulator.WindowHeight) / float32(Simulator.WindowPPI) * 25.4)

@@ -10,15 +10,13 @@ import (
 )
 
 var (
-	Display = Display0
+	Display = mainDisplay{}
 	Buttons = noButtons{}
 )
 
-var Display0 display0Config
+type mainDisplay struct{}
 
-type display0Config struct{}
-
-func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
+func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	machine.LCD_MODE.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	machine.LCD_MODE.Low()
 
@@ -37,10 +35,10 @@ func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
 	return display
 }
 
-func (d display0Config) Size() (width, height int16) {
+func (d mainDisplay) Size() (width, height int16) {
 	return 320, 240
 }
 
-func (d display0Config) PhysicalSize() (width, height int) {
+func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 49, 37 // 48.96 x 36.72
 }

@@ -11,14 +11,12 @@ import (
 )
 
 var (
-	Display = Display0
+	Display = mainDisplay{}
 )
 
-var Display0 display0Config
+type mainDisplay struct{}
 
-type display0Config struct{}
-
-func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
+func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	machine.SPI0.Configure(machine.SPIConfig{
 		// Mode 3 appears to be compatible with mode 0, but is slightly
 		// faster: each byte takes 9 clock cycles instead of 10.
@@ -55,11 +53,11 @@ func (d display0Config) Configure() Displayer[pixel.RGB565BE] {
 	return &display
 }
 
-func (d display0Config) Size() (width, height int16) {
+func (d mainDisplay) Size() (width, height int16) {
 	return 320, 240
 }
 
-func (d display0Config) PhysicalSize() (width, height int) {
+func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 49, 37 // size in millimeters
 }
 

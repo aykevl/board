@@ -11,22 +11,20 @@ import (
 )
 
 var (
-	Display = Display0
+	Display = mainDisplay{}
 )
 
-var Display0 display0Config
+type mainDisplay struct{}
 
-type display0Config struct{}
-
-func (d display0Config) Size() (width, height int16) {
+func (d mainDisplay) Size() (width, height int16) {
 	return 240, 160
 }
 
-func (d display0Config) PhysicalSize() (width, height int) {
+func (d mainDisplay) PhysicalSize() (width, height int) {
 	return 62, 41 // size in millimeters
 }
 
-func (d display0Config) Configure() Displayer[pixel.RGB555] {
+func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
 	display := machine.Display
 	display.Configure()
 	return display
