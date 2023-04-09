@@ -11,6 +11,7 @@ import (
 
 var (
 	Display = Display0
+	Buttons = noButtons{}
 )
 
 type internalSPI0 struct{ configured bool }
