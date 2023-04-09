@@ -15,7 +15,10 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-// Default devices.
+// List of all devices.
+//
+// Support varies by board, but all boards have the following peripherals
+// defined.
 var (
 	Display = mainDisplay{}
 	Buttons = buttonsConfig{}
@@ -53,6 +56,9 @@ func startSDL() {
 	<-mainRunning
 }
 
+// Configure returns a new display ready to draw on.
+//
+// Boards without a display will return nil.
 func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	// TODO: use something like golang.org/x/exp/shiny to avoid CGo.
 
@@ -81,7 +87,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	return screen
 }
 
-// Size of the board in pixels.
+// Size of the display in pixels.
 func (d mainDisplay) Size() (width, height int16) {
 	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)
 }
@@ -185,7 +191,7 @@ func decodeSDLKeyboardEvent(event *sdl.KeyboardEvent) KeyEvent {
 		return NoKeyEvent
 	}
 	if event.Type == sdl.KEYUP {
-		e |= KeyReleased
+		e |= keyReleased
 	}
 	return e
 }

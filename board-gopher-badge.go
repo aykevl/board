@@ -121,7 +121,7 @@ func (b *gpioButtons) NextEvent() KeyEvent {
 	e := KeyEvent(codes[index])
 	if b.state&(1<<index) == 0 {
 		// The button state change was from 1 to 0, so it was released.
-		e |= KeyReleased
+		e |= keyReleased
 	}
 
 	// This button event was read, so mark it as such.
