@@ -94,17 +94,3 @@ func (k KeyEvent) Key() Key {
 func (k KeyEvent) Pressed() bool {
 	return k&keyReleased == 0
 }
-
-// Dummy button input that doesn't actually read any inputs.
-// Used for boards that don't have any buttons.
-type noButtons struct{}
-
-func (b noButtons) Configure() {
-}
-
-func (b noButtons) ReadInput() {
-}
-
-func (b noButtons) NextEvent() KeyEvent {
-	return NoKeyEvent
-}
