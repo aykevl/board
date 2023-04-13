@@ -88,6 +88,26 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	return screen
 }
 
+// Wait until the next vertical blanking interval (vblank) interrupt is
+// received. If the vblank interrupt is not available, it waits until the time
+// since the previous call to WaitForVBlank is the default interval instead.
+//
+// The vertical blanking interval is the time between two screen refreshes. The
+// vblank interrupt happens at the start of this interval, and indicates the
+// period where the framebuffer is not being touched and can be updated without
+// tearing.
+//
+// Don't use this method for timing, because vblank varies by hardware. Instead,
+// use time.Now() to determine the current time and the amount of time since the
+// last screen refresh.
+//
+// TODO: this is not a great API (it's blocking), it may change in the future.
+func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
+	// I'm sure there is some SDL2 API we could use here, but I couldn't find
+	// one easily so just emulate it.
+	dummyWaitForVBlank(defaultInterval)
+}
+
 // Size of the display in pixels.
 func (d mainDisplay) Size() (width, height int16) {
 	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)

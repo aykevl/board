@@ -4,6 +4,7 @@ package board
 
 import (
 	"machine"
+	"time"
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/ili9341"
@@ -33,6 +34,12 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	})
 
 	return display
+}
+
+func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
+	// The FPGA has a parallel output and can probably do tear-free updates, but
+	// not the ESP32.
+	dummyWaitForVBlank(defaultInterval)
 }
 
 func (d mainDisplay) Size() (width, height int16) {

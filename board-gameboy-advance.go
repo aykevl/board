@@ -6,6 +6,7 @@ import (
 	"device/gba"
 	"machine"
 	"math/bits"
+	"time"
 
 	"github.com/aykevl/tinygl/pixel"
 )
@@ -29,6 +30,14 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
 	display := machine.Display
 	display.Configure()
 	return display
+}
+
+func (d mainDisplay) WaitForVBlank(time.Duration) {
+	// Wait until the VBlank flag is set.
+	// TODO: sleep until the next VBlank instead of busy waiting.
+	// (See VBlankIntrWait)
+	for gba.DISP.DISPSTAT.Get()&(1<<gba.DISPSTAT_VBLANK_Pos) == 0 {
+	}
 }
 
 func (d mainDisplay) ConfigureTouch() TouchInput {

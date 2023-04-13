@@ -5,6 +5,7 @@ package board
 import (
 	"machine"
 	"math/bits"
+	"time"
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/st7789"
@@ -52,6 +53,10 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	})
 
 	return &display
+}
+
+func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
+	dummyWaitForVBlank(defaultInterval)
 }
 
 func (d mainDisplay) Size() (width, height int16) {

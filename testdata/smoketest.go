@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/aykevl/board"
 	"github.com/aykevl/tinygl/pixel"
 )
@@ -14,6 +16,7 @@ func main() {
 		Size() (int16, int16)
 		PhysicalSize() (int, int)
 		ConfigureTouch() board.TouchInput
+		WaitForVBlank(time.Duration)
 	} = board.Display
 
 	// Assert that board.Buttons uses the usual interface.

@@ -5,6 +5,7 @@ package board
 import (
 	"machine"
 	"math/bits"
+	"time"
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/shifter"
@@ -39,6 +40,10 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		Rotation: st7735.ROTATION_90,
 	})
 	return &display
+}
+
+func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
+	dummyWaitForVBlank(defaultInterval)
 }
 
 func (d mainDisplay) ConfigureTouch() TouchInput {

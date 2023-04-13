@@ -1,5 +1,7 @@
 package board
 
+import "time"
+
 // This file contains dummy devices, for devices which don't support a
 // particular kind of device.
 
@@ -23,4 +25,19 @@ type noTouch struct{}
 
 func (t noTouch) ReadTouch() []TouchPoint {
 	return nil
+}
+
+var lastWaitForVBlank time.Time
+
+// Utility function for all those boards that don't support vblank.
+func dummyWaitForVBlank(defaultInterval time.Duration) {
+	waitUntil := lastWaitForVBlank.Add(defaultInterval)
+	now := time.Now()
+	duration := waitUntil.Sub(now)
+	if duration < 0 {
+		lastWaitForVBlank = now
+		return
+	}
+	time.Sleep(duration)
+	lastWaitForVBlank = waitUntil
 }

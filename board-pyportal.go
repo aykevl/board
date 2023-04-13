@@ -4,6 +4,7 @@ package board
 
 import (
 	"machine"
+	"time"
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/ili9341"
@@ -31,6 +32,11 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		Rotation: ili9341.Rotation270,
 	})
 
+	// Enable the TE ("tearing effect") pin to read vblank status.
+	te := machine.TFT_TE
+	te.Configure(machine.PinConfig{Mode: machine.PinInput})
+	display.EnableTEOutput(true)
+
 	// Enable backlight.
 	// TODO: do this in a separate method (and disable the backlight at
 	// startup).
@@ -39,6 +45,14 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	backlight.High()
 
 	return display
+}
+
+func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
+	// TODO: wait for a pin interrupt instead of blocking.
+	for machine.TFT_TE.Get() == true {
+	}
+	for machine.TFT_TE.Get() == false {
+	}
 }
 
 func (d mainDisplay) Size() (width, height int16) {
