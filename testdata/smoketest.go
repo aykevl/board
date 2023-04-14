@@ -16,6 +16,8 @@ func main() {
 		Size() (int16, int16)
 		PPI() int
 		ConfigureTouch() board.TouchInput
+		MaxBrightness() int
+		SetBrightness(int)
 		WaitForVBlank(time.Duration)
 	} = board.Display
 

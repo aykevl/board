@@ -6,6 +6,7 @@ package board
 // hardware. This avoids potentially long edit-flash-test cycles.
 
 import (
+	"math/rand"
 	"os"
 	"runtime"
 	"sync"
@@ -27,9 +28,11 @@ var (
 type mainDisplay struct{}
 
 type sdlscreen struct {
-	surface       *sdl.Surface
+	surface       *sdl.Surface // window surface
+	framebuffer   *sdl.Surface // framebuffer as stored by DrawRGBBitmap8
 	window        *sdl.Window
 	scale         int
+	brightness    bool
 	keyevents     []KeyEvent
 	keyeventsLock sync.Mutex
 	touchID       uint32
@@ -37,7 +40,10 @@ type sdlscreen struct {
 	touchesLock   sync.Mutex
 }
 
-var screen = &sdlscreen{scale: 1}
+var screen = &sdlscreen{
+	scale:      1,
+	brightness: false,
+}
 
 var sdlStart sync.Once
 
@@ -72,8 +78,27 @@ func startSDL() {
 				panic("failed to create SDL surface: " + err.Error())
 			}
 
+			// Create framebuffer to write to.
+			screen.framebuffer, err = sdl.CreateRGBSurfaceWithFormat(0, screen.surface.W, screen.surface.H, 8, screen.surface.Format.Format)
+			if err != nil {
+				panic("failed to create pseudo-framebuffer:" + err.Error())
+			}
+
+			// Fill framebuffer with random data. This simulates power-on behavior.
+			var rect sdl.Rect
+			for y := 0; y < int(screen.surface.H); y++ {
+				for x := 0; x < int(screen.surface.W); x++ {
+					c := rand.Uint32()
+					rect.X = int32(x * screen.scale)
+					rect.Y = int32(y * screen.scale)
+					rect.W = int32(screen.scale)
+					rect.H = int32(screen.scale)
+					screen.framebuffer.FillRect(&rect, c)
+				}
+			}
+
 			// Initialize display to black.
-			screen.surface.FillRect(nil, 0)
+			screen.drawSurface()
 			screen.window.UpdateSurface()
 		})
 	})
@@ -86,6 +111,26 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
 	// TODO: use something like golang.org/x/exp/shiny to avoid CGo.
 	startSDL()
 	return screen
+}
+
+// MaxBrightness returns the maximum brightness value. A maximum brightness
+// value of 0 means that this display doesn't support changing the brightness.
+func (d mainDisplay) MaxBrightness() int {
+	return 1
+}
+
+// SetBrightness sets brightness level of the display. It should be:
+//
+//	0 ≤ level ≤ MaxBrightness
+//
+// A value of 0 turns the backlight off entirely (but may leave the display
+// running with nothing visible).
+func (d mainDisplay) SetBrightness(level int) {
+	screen.brightness = level > 0
+	sdl.Do(func() {
+		screen.drawSurface()
+		screen.window.UpdateSurface()
+	})
 }
 
 // Wait until the next vertical blanking interval (vblank) interrupt is
@@ -124,8 +169,18 @@ func (d mainDisplay) ConfigureTouch() TouchInput {
 	return sdltouch{}
 }
 
+func (s *sdlscreen) drawSurface() {
+	if s.brightness {
+		s.framebuffer.Blit(nil, s.surface, nil)
+	} else {
+		gray := sdl.MapRGB(s.framebuffer.Format, 96, 96, 96)
+		s.surface.FillRect(nil, gray)
+	}
+}
+
 func (s *sdlscreen) Display() error {
 	sdl.Do(func() {
+		s.drawSurface()
 		for {
 			event := sdl.PollEvent()
 			if event == nil {
@@ -181,12 +236,12 @@ func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 	for bufy := 0; bufy < int(height); bufy++ {
 		for bufx := 0; bufx < int(width); bufx++ {
 			index := (bufy*int(width) + bufx) * 3
-			c := sdl.MapRGB(s.surface.Format, buf[index+0], buf[index+1], buf[index+2])
+			c := sdl.MapRGB(s.framebuffer.Format, buf[index+0], buf[index+1], buf[index+2])
 			rect.X = int32((bufx + int(x)) * s.scale)
 			rect.Y = int32((bufy + int(y)) * s.scale)
 			rect.W = int32(s.scale)
 			rect.H = int32(s.scale)
-			s.surface.FillRect(&rect, c)
+			s.framebuffer.FillRect(&rect, c)
 		}
 	}
 	return nil

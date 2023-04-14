@@ -39,7 +39,16 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	display.Configure(st7735.Config{
 		Rotation: st7735.ROTATION_90,
 	})
+	display.EnableBacklight(false)
 	return &display
+}
+
+func (d mainDisplay) MaxBrightness() int {
+	return 1
+}
+
+func (d mainDisplay) SetBrightness(level int) {
+	machine.TFT_LITE.Set(level > 0)
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {

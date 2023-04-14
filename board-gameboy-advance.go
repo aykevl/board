@@ -32,6 +32,14 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
 	return display
 }
 
+func (d mainDisplay) MaxBrightness() int {
+	return 0
+}
+
+func (d mainDisplay) SetBrightness(level int) {
+	// The display doesn't have a backlight.
+}
+
 func (d mainDisplay) WaitForVBlank(time.Duration) {
 	// Wait until the VBlank flag is set.
 	// TODO: sleep until the next VBlank instead of busy waiting.

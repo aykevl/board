@@ -51,8 +51,17 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		PVGAMCTRL: []byte{0xF0, 0x00, 0x04, 0x04, 0x04, 0x05, 0x29, 0x33, 0x3E, 0x38, 0x12, 0x12, 0x28, 0x30},
 		NVGAMCTRL: []byte{0xF0, 0x07, 0x0A, 0x0D, 0x0B, 0x07, 0x28, 0x33, 0x3E, 0x36, 0x14, 0x14, 0x29, 0x32},
 	})
+	display.EnableBacklight(false)
 
 	return &display
+}
+
+func (d mainDisplay) MaxBrightness() int {
+	return 1
+}
+
+func (d mainDisplay) SetBrightness(level int) {
+	machine.TFT_BACKLIGHT.Set(level > 0)
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {

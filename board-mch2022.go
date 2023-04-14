@@ -36,6 +36,14 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	return display
 }
 
+func (d mainDisplay) MaxBrightness() int {
+	return 0
+}
+
+func (d mainDisplay) SetBrightness(level int) {
+	// Brightness is controlled by the rp2040 chip.
+}
+
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
 	// The FPGA has a parallel output and can probably do tear-free updates, but
 	// not the ESP32.

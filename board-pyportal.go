@@ -19,6 +19,11 @@ var (
 type mainDisplay struct{}
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
+	// Initialize backlight and disable at startup.
+	backlight := machine.TFT_BACKLIGHT
+	backlight.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	backlight.Low()
+
 	// Enable and configure display.
 	display := ili9341.NewParallel(
 		machine.LCD_DATA0,
@@ -37,14 +42,15 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	te.Configure(machine.PinConfig{Mode: machine.PinInput})
 	display.EnableTEOutput(true)
 
-	// Enable backlight.
-	// TODO: do this in a separate method (and disable the backlight at
-	// startup).
-	backlight := machine.TFT_BACKLIGHT
-	backlight.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	backlight.High()
-
 	return display
+}
+
+func (d mainDisplay) MaxBrightness() int {
+	return 1
+}
+
+func (d mainDisplay) SetBrightness(level int) {
+	machine.TFT_BACKLIGHT.Set(level > 0)
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
