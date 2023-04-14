@@ -113,12 +113,9 @@ func (d mainDisplay) Size() (width, height int16) {
 	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)
 }
 
-// Physical size in millimeters.
-func (d mainDisplay) PhysicalSize() (width, height int) {
-	// numPixels / PPI * 25.4 (where 25.4 the number of millimeters in an inch)
-	width = int(float32(Simulator.WindowWidth) / float32(Simulator.WindowPPI) * 25.4)
-	height = int(float32(Simulator.WindowHeight) / float32(Simulator.WindowPPI) * 25.4)
-	return
+// Pixels per inch for this display.
+func (d mainDisplay) PPI() int {
+	return Simulator.WindowPPI
 }
 
 func (d mainDisplay) ConfigureTouch() TouchInput {

@@ -59,8 +59,8 @@ func (d mainDisplay) Size() (width, height int16) {
 	return 320, 240
 }
 
-func (d mainDisplay) PhysicalSize() (width, height int) {
-	return 49, 37
+func (d mainDisplay) PPI() int {
+	return 166 // appears to be the same size/resolution as the Gopher Badge and the MCH2022 badge
 }
 
 // Configure the resistive touch input on this display.

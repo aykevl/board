@@ -63,8 +63,8 @@ func (d mainDisplay) Size() (width, height int16) {
 	return 320, 240
 }
 
-func (d mainDisplay) PhysicalSize() (width, height int) {
-	return 49, 37 // size in millimeters
+func (d mainDisplay) PPI() int {
+	return 166 // 320px / (48.96mm / 25.4)
 }
 
 func (d mainDisplay) ConfigureTouch() TouchInput {

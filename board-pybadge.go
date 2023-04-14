@@ -23,8 +23,8 @@ func (d mainDisplay) Size() (width, height int16) {
 	return 160, 128
 }
 
-func (d mainDisplay) PhysicalSize() (width, height int) {
-	return 36, 29 // size in millimeters
+func (d mainDisplay) PPI() int {
+	return 116 // 160px / (35.04mm / 25.4)
 }
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
