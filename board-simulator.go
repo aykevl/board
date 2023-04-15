@@ -239,6 +239,8 @@ func (s *sdlscreen) Display() error {
 
 func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
 	var rect sdl.Rect
+	drawStart := time.Now()
+	lastUpdate := drawStart
 	for bufy := 0; bufy < int(height); bufy++ {
 		for bufx := 0; bufx < int(width); bufx++ {
 			index := (bufy*int(width) + bufx) * 3
@@ -248,6 +250,25 @@ func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 			rect.W = int32(s.scale)
 			rect.H = int32(s.scale)
 			s.framebuffer.FillRect(&rect, c)
+		}
+
+		// Delay drawing a bit, to simulate a slow SPI bus.
+		if Simulator.WindowDrawSpeed != 0 {
+			now := time.Now()
+			expected := drawStart.Add(Simulator.WindowDrawSpeed * time.Duration(bufy*int(width)))
+			delay := expected.Sub(now)
+			if delay > 0 {
+				time.Sleep(delay)
+				now = time.Now()
+			}
+
+			if now.Sub(lastUpdate) > 5*time.Millisecond {
+				sdl.Do(func() {
+					s.drawSurface()
+					screen.window.UpdateSurface()
+				})
+				lastUpdate = now
+			}
 		}
 	}
 	return nil

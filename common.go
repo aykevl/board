@@ -1,6 +1,8 @@
 package board
 
 import (
+	"time"
+
 	"github.com/aykevl/tinygl/pixel"
 )
 
@@ -21,6 +23,11 @@ var Simulator = struct {
 	// Pixels per inch. The default is 120, which matches many commonly used
 	// high-DPI screens (for example, Apple screens).
 	WindowPPI int
+
+	// How much time it takes (in nanoseconds) to draw a single pixel.
+	// For example, for 8MHz and 16 bits per color:
+	//     time.Second * 16 / 8e6
+	WindowDrawSpeed time.Duration
 }{
 	WindowTitle:  "Simulator",
 	WindowWidth:  240,
