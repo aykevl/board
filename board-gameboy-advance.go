@@ -11,6 +11,10 @@ import (
 	"github.com/aykevl/tinygl/pixel"
 )
 
+const (
+	Name = "gameboy-advance"
+)
+
 var (
 	Display = mainDisplay{}
 	Buttons = &gbaButtons{}

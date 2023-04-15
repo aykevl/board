@@ -11,6 +11,10 @@ import (
 	"tinygo.org/x/drivers/st7789"
 )
 
+const (
+	Name = "gopher-badge"
+)
+
 var (
 	Display = mainDisplay{}
 	Buttons = &gpioButtons{}

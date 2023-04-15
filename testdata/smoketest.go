@@ -8,6 +8,9 @@ import (
 )
 
 func main() {
+	// Verify board name constant.
+	var _ string = board.Name
+
 	// Assert that board.Display implements board.Displayer.
 	checkScreen(board.Display.Configure())
 

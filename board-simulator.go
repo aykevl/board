@@ -16,6 +16,12 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+const (
+	// The board name, as passed to TinyGo in the "-target" flag.
+	// This is the special name "simulator" for the simulator.
+	Name = "simulator"
+)
+
 // List of all devices.
 //
 // Support varies by board, but all boards have the following peripherals

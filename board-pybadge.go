@@ -12,6 +12,10 @@ import (
 	"tinygo.org/x/drivers/st7735"
 )
 
+const (
+	Name = "pybadge"
+)
+
 var (
 	Display = mainDisplay{}
 	Buttons = &buttonsConfig{}

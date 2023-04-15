@@ -10,6 +10,10 @@ import (
 	"tinygo.org/x/drivers/ili9341"
 )
 
+const (
+	Name = "mch2022"
+)
+
 var (
 	Display = mainDisplay{}
 	Buttons = noButtons{}

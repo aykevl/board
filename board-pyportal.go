@@ -11,6 +11,10 @@ import (
 	"tinygo.org/x/drivers/touch/resistive"
 )
 
+const (
+	Name = "pyportal"
+)
+
 var (
 	Display = mainDisplay{}
 	Buttons = noButtons{}
