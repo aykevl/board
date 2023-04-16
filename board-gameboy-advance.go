@@ -4,9 +4,10 @@ package board
 
 import (
 	"device/gba"
-	"machine"
 	"math/bits"
+	"runtime/volatile"
 	"time"
+	"unsafe"
 
 	"github.com/aykevl/tinygl/pixel"
 )
@@ -31,9 +32,10 @@ func (d mainDisplay) PPI() int {
 }
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB555] {
-	display := machine.Display
-	display.Configure()
-	return display
+	// Use video mode 3 (in BG2, a 16bpp bitmap in VRAM) and Enable BG2.
+	gba.DISP.DISPCNT.Set(gba.DISPCNT_BGMODE_3<<gba.DISPCNT_BGMODE_Pos |
+		gba.DISPCNT_SCREENDISPLAY_BG2_ENABLE<<gba.DISPCNT_SCREENDISPLAY_BG2_Pos)
+	return gbaDisplay{}
 }
 
 func (d mainDisplay) MaxBrightness() int {
@@ -54,6 +56,30 @@ func (d mainDisplay) WaitForVBlank(time.Duration) {
 
 func (d mainDisplay) ConfigureTouch() TouchInput {
 	return noTouch{}
+}
+
+type gbaDisplay struct{}
+
+var displayFrameBuffer = (*[160 * 240]volatile.Register16)(unsafe.Pointer(uintptr(gba.MEM_VRAM)))
+
+func (d gbaDisplay) Size() (x, y int16) {
+	return 240, 160
+}
+
+func (d gbaDisplay) Display() error {
+	// Nothing to do here.
+	return nil
+}
+
+func (d gbaDisplay) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
+	for bufY := 0; bufY < int(height); bufY++ {
+		for bufX := 0; bufX < int(width); bufX++ {
+			index := bufY*int(width) + bufX
+			val := uint16(buf[index*2+0]) + uint16(buf[index*2+1])<<8
+			displayFrameBuffer[(int(y)+bufY)*240+int(x)+bufX].Set(val)
+		}
+	}
+	return nil
 }
 
 type gbaButtons struct {
