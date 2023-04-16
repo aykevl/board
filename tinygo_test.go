@@ -12,6 +12,7 @@ var boards = []string{
 	"gameboy-advance",
 	"gopher-badge",
 	"mch2022",
+	"pinetime-devkit0",
 	"pybadge",
 	"pyportal",
 	"simulator",
