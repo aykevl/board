@@ -5,5 +5,5 @@ go 1.20
 require (
 	github.com/aykevl/tinygl v0.0.0-20230408194035-b80322370d0d
 	github.com/veandco/go-sdl2 v0.4.33
-	tinygo.org/x/drivers v0.24.1-0.20230412184607-ce4393f12515
+	tinygo.org/x/drivers v0.24.1-0.20230417062354-d3022e7d6e22
 )
