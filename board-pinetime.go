@@ -25,7 +25,7 @@ type mainDisplay struct{}
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	// Set the chip select line for the flash chip to inactive.
 	cs := machine.Pin(5) // SPI CS
-	cs.Configure(machine.PinConfig{Mode: machine.PinInput})
+	cs.Configure(machine.PinConfig{Mode: machine.PinOutput})
 	cs.High()
 
 	// Configure the SPI bus.
