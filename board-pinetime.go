@@ -155,12 +155,25 @@ type singleButton struct {
 func (b *singleButton) Configure() {
 	// BUTTON_OUT must be held high for BUTTON_IN to read anything useful.
 	machine.BUTTON_OUT.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.Low()
 	machine.BUTTON_IN.Configure(machine.PinConfig{Mode: machine.PinInput})
 }
 
 func (b *singleButton) ReadInput() {
+	// BUTTON_OUT needs to be kept low most of the time to avoid a ~34µA current
+	// increase. However, setting it to high just before reading doesn't appear
+	// to be enough: a small delay is needed. This can be done by setting
+	// BUTTON_OUT high multiple times in a row, which doesn't do anything except
+	// introduce the needed delay.
+	// Four stores appear to be enough to get readings, I have added a fifth to
+	// be sure.
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
 	b.state = machine.BUTTON_IN.Get()
+	machine.BUTTON_OUT.Low()
 }
 
 func (b *singleButton) NextEvent() KeyEvent {
