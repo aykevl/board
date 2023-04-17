@@ -3,8 +3,8 @@
 package board
 
 import (
+	"device/nrf"
 	"machine"
-	"runtime/volatile"
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
@@ -13,6 +13,8 @@ import (
 
 const (
 	Name = "pinetime"
+
+	touchInterruptPin = 28
 )
 
 var (
@@ -78,12 +80,20 @@ func (d mainDisplay) PPI() int {
 
 func (d mainDisplay) ConfigureTouch() TouchInput {
 	// Configure touch interrupt pin.
-	// After the interrupt is received, the touch controller is accessible over
-	// I2C for as long as a finger touches the screen and a short time
-	// afterwards (a few hundred milliseconds) before going back to sleep.
-	intr := machine.Pin(28)
-	intr.Configure(machine.PinConfig{Mode: machine.PinInput})
-	intr.SetInterrupt(machine.PinFalling, handleTouchIntr)
+	// After the pin goes low (for a very short time), the touch controller is
+	// accessible over I2C for as long as a finger touches the screen and a
+	// short time afterwards (a second or so) before going back to sleep.
+	//
+	// We don't actually use an interrupt here because pin change interrupts
+	// result in far too much current consumption (jumping from 0.19mA to
+	// 0.65mA), probably due to anomaly 97:
+	// https://infocenter.nordicsemi.com/index.jsp?topic=%2Ferrata_nRF52832_Rev2%2FERR%2FnRF52832%2FRev2%2Flatest%2Fanomaly_832_97.html
+	// Also see:
+	// https://devzone.nordicsemi.com/f/nordic-q-a/50624/about-current-consumption-of-gpio-and-gpiote
+	// We could use a PORT interrupt in GPIOTE, using it as a level interrupt.
+	// And it would be a good idea to implement this in TinyGo directly (as a
+	// level interrupt), but in the meantime we'll use this quick-n-dirty hack.
+	nrf.P0.PIN_CNF[touchInterruptPin].Set(nrf.GPIO_PIN_CNF_DIR_Input<<nrf.GPIO_PIN_CNF_DIR_Pos | nrf.GPIO_PIN_CNF_INPUT_Connect<<nrf.GPIO_PIN_CNF_INPUT_Pos | nrf.GPIO_PIN_CNF_SENSE_Low<<nrf.GPIO_PIN_CNF_SENSE_Pos)
 
 	// Run I2C at a high speed (400KHz).
 	touchI2C.Configure(machine.I2CConfig{
@@ -97,12 +107,6 @@ func (d mainDisplay) ConfigureTouch() TouchInput {
 
 var touchI2C = machine.I2C1
 
-var touchState volatile.Register8
-
-func handleTouchIntr(machine.Pin) {
-	touchState.Set(1)
-}
-
 var touchPoints [1]TouchPoint
 
 type touchInput struct{}
@@ -112,14 +116,18 @@ var touchID uint32 = 1
 var touchData = make([]byte, 6)
 
 func (input touchInput) ReadTouch() []TouchPoint {
-	state := touchState.Get()
-	if state != 0 {
+	// Read the bit from the LATCH reister, which is set to high when TP_INT
+	// goes high but doesn't go low on its own. We do that manually once no more
+	// touches are read from the touch controller.
+	if nrf.P0.LATCH.Get()&(1<<touchInterruptPin) != 0 {
 		touchI2C.ReadRegister(21, 1, touchData)
 		num := touchData[1] & 0x0f
 		if num == 0 {
-			// TODO: there is a race condition here with the pin interrupt
-			touchState.Set(0)
 			touchID++ // for the next time
+			// Stop reading touch events.
+			// There may be a small race condition here, if the touch controller
+			// detects another touch while reading the touch data over I2C.
+			nrf.P0.LATCH.Set(1 << touchInterruptPin)
 		}
 		x := (uint16(touchData[2]&0xf) << 8) | uint16(touchData[3]) // x coord
 		y := (uint16(touchData[4]&0xf) << 8) | uint16(touchData[5]) // y coord
