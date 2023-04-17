@@ -51,6 +51,9 @@ type Displayer[T pixel.Color] interface {
 	// Display the written image on screen. This call may or may not be
 	// necessary depending on the screen, but it's better to call it anyway.
 	Display() error
+
+	// Enter or exit sleep mode.
+	Sleep(sleepEnabled bool) error
 }
 
 // TouchInput reads the touch screen (resistive/capacitive) on a display and

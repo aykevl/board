@@ -279,6 +279,14 @@ func (s *sdlscreen) Size() (width, height int16) {
 	return int16(bounds.X / s.scale), int16(bounds.Y / s.scale)
 }
 
+// Set sleep mode for this screen.
+func (s *sdlscreen) Sleep(sleepEnabled bool) error {
+	// This is a no-op.
+	// TODO: use a different gray than when the backlight is set to zero, to
+	// indicate sleep mode.
+	return nil
+}
+
 type sdltouch struct{}
 
 func (s sdltouch) ReadTouch() []TouchPoint {

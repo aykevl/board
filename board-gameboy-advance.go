@@ -82,6 +82,10 @@ func (d gbaDisplay) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 	return nil
 }
 
+func (d gbaDisplay) Sleep(sleepEnabled bool) error {
+	return nil // nothign to do here
+}
+
 type gbaButtons struct {
 	state         uint16
 	previousState uint16
