@@ -22,6 +22,14 @@ var (
 	Buttons = &singleButton{}
 )
 
+func init() {
+	// Enable the DC/DC regulator.
+	// This doesn't affect sleep power consumption, but significantly reduces
+	// runtime power consumpton of the CPU core (almost halving the current
+	// required).
+	nrf.POWER.DCDCEN.Set(nrf.POWER_DCDCEN_DCDCEN)
+}
+
 type mainDisplay struct{}
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
