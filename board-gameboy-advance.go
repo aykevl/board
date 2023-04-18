@@ -17,6 +17,7 @@ const (
 )
 
 var (
+	Power   = dummyBattery{state: UnknownBattery}
 	Display = mainDisplay{}
 	Buttons = &gbaButtons{}
 )

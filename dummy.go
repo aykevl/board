@@ -41,3 +41,17 @@ func dummyWaitForVBlank(defaultInterval time.Duration) {
 	time.Sleep(duration)
 	lastWaitForVBlank = waitUntil
 }
+
+// Dummy implementation of the Power value, for devices with no battery or where
+// the battery status cannot be read.
+type dummyBattery struct {
+	state ChargeState
+}
+
+func (b dummyBattery) Configure() {
+	// nothing to do here
+}
+
+func (b dummyBattery) Status() (ChargeState, uint32) {
+	return b.state, 0
+}

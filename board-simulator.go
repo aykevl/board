@@ -27,9 +27,34 @@ const (
 // Support varies by board, but all boards have the following peripherals
 // defined.
 var (
+	Power   = simulatedPower{}
 	Display = mainDisplay{}
 	Buttons = buttonsConfig{}
 )
+
+type simulatedPower struct{}
+
+// Configure the battery status reader. This must be called before calling
+// Status.
+func (p simulatedPower) Configure() {
+	// Nothing to do here.
+}
+
+// Status returns the current charge status (charging, discharging) and the
+// current voltage of the battery in microvolts. If the voltage is 0 it means
+// there is no battery present, any other value means a value was read from the
+// battery (but there may or may not be a battery attached).
+//
+// Calculating a charge percentage is highly device and battery specific, but an
+// estimate can be made using the voltage.
+func (p simulatedPower) Status() (state ChargeState, microvolts uint32) {
+	// Pretend we're running on battery power and the battery is at 3.7V
+	// (typical lipo voltage).
+	// Randomize the output a bit to fake ADC noise (programs should be able to
+	// deal with that).
+	microvolts = 3700_000 + rand.Uint32()%16384 - 8192
+	return Discharging, microvolts
+}
 
 type mainDisplay struct{}
 

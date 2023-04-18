@@ -16,6 +16,7 @@ const (
 )
 
 var (
+	Power   = dummyBattery{state: NoBattery}
 	Display = mainDisplay{}
 	Buttons = noButtons{}
 )

@@ -15,6 +15,7 @@ const (
 )
 
 var (
+	Power   = dummyBattery{state: UnknownBattery} // unimplemented
 	Display = mainDisplay{}
 	Buttons = noButtons{}
 )

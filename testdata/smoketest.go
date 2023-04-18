@@ -30,6 +30,12 @@ func main() {
 		ReadInput()
 		NextEvent() board.KeyEvent
 	} = board.Buttons
+
+	// Assert that board.Power uses the usual interface.
+	var _ interface {
+		Configure()
+		Status() (state board.ChargeState, microvolts uint32)
+	} = board.Power
 }
 
 func checkScreen[T pixel.Color](display board.Displayer[T]) {

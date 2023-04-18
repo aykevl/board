@@ -35,6 +35,49 @@ var Simulator = struct {
 	WindowPPI:    120, // common on many modern displays (for example Retina is 254 / 2 = 127)
 }
 
+// ChargeState is the charging status of a battery.
+type ChargeState uint8
+
+const (
+	// A battery might be attached, this is unknown (no way to know by reading a
+	// pin).
+	UnknownBattery ChargeState = iota
+
+	// This board doesn't have batteries.
+	NoBattery
+
+	// No battery is attached to the board, but there could be one.
+	BatteryUnavailable
+
+	// There is a battery attached and it's charging (usually from USB)
+	Charging
+
+	// Power is present, but the battery is not charging (usually when it is
+	// fully charged).
+	NotCharging
+
+	// There is a battery attached and it's not charging (no power connected).
+	Discharging
+)
+
+// Return a string representation of the charge status, mainly for debugging.
+func (c ChargeState) String() string {
+	switch c {
+	default:
+		return "unknown"
+	case NoBattery:
+		return "none"
+	case BatteryUnavailable:
+		return "not connected"
+	case Charging:
+		return "charging"
+	case NotCharging:
+		return "not charging"
+	case Discharging:
+		return "discharging"
+	}
+}
+
 // The display interface shared by all supported displays.
 type Displayer[T pixel.Color] interface {
 	// The display size in pixels. This must match Display.Size().

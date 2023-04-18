@@ -14,10 +14,14 @@ import (
 const (
 	Name = "pinetime"
 
-	touchInterruptPin = 28
+	touchInterruptPin   = 28
+	chargeIndicationPin = machine.Pin(12)
+	powerPresencePin    = machine.Pin(19)
+	batteryVoltagePin   = machine.Pin(31)
 )
 
 var (
+	Power   = mainBattery{}
 	Display = mainDisplay{}
 	Buttons = &singleButton{}
 )
@@ -28,6 +32,39 @@ func init() {
 	// runtime power consumpton of the CPU core (almost halving the current
 	// required).
 	nrf.POWER.DCDCEN.Set(nrf.POWER_DCDCEN_DCDCEN)
+}
+
+type mainBattery struct {
+}
+
+func (b mainBattery) Configure() {
+	chargeIndicationPin.Configure(machine.PinConfig{Mode: machine.PinInput})
+	powerPresencePin.Configure(machine.PinConfig{Mode: machine.PinInput})
+
+	// Configure the ADC.
+	// This doesn't actually do anything, but it's here in case the
+	// implementation changes.
+	machine.InitADC()
+	machine.ADC{Pin: batteryVoltagePin}.Configure(machine.ADCConfig{})
+}
+
+func (b mainBattery) Status() (status ChargeState, microvolts uint32) {
+	rawValue := machine.ADC{Pin: batteryVoltagePin}.Get()
+	// Formula to calculate microvolts:
+	//   rawValue * 6600_000 / 0x10000
+	// Simlified, to fit in 32-bit integers:
+	//   rawValue * 51562 / 512
+	microvolts = uint32(rawValue) * 51562 / 512
+	isCharging := chargeIndicationPin.Get() == false  // low when charging
+	isPowerPresent := powerPresencePin.Get() == false // low when present
+	if isCharging {
+		status = Charging
+	} else if isPowerPresent {
+		status = NotCharging
+	} else {
+		status = Discharging
+	}
+	return
 }
 
 type mainDisplay struct{}

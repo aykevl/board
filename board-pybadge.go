@@ -17,9 +17,30 @@ const (
 )
 
 var (
+	Power   = mainBattery{}
 	Display = mainDisplay{}
 	Buttons = &buttonsConfig{}
 )
+
+type mainBattery struct {
+}
+
+func (b mainBattery) Configure() {
+	machine.InitADC()
+	machine.ADC{Pin: machine.A6}.Configure(machine.ADCConfig{
+		Samples: 4, // 4 seems to be good enough
+	})
+}
+
+func (b mainBattery) Status() (ChargeState, uint32) {
+	rawValue := machine.ADC{Pin: machine.A6}.Get()
+	// Formula to calculate microvolts:
+	//   rawValue * 6600_000 / 0x10000
+	// Simlified, to fit in 32-bit integers:
+	//   rawValue * 51562 / 512
+	microvolts := uint32(rawValue) * 51562 / 512
+	return UnknownBattery, microvolts
+}
 
 type mainDisplay struct{}
 
