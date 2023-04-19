@@ -15,6 +15,7 @@ const (
 	Name = "pinetime"
 
 	touchInterruptPin   = 28
+	spiFlashCSPin       = machine.Pin(5)
 	chargeIndicationPin = machine.Pin(12)
 	powerPresencePin    = machine.Pin(19)
 	batteryVoltagePin   = machine.Pin(31)
@@ -67,26 +68,45 @@ func (b mainBattery) Status() (status ChargeState, microvolts uint32) {
 	return
 }
 
+var spi0Configured bool
+
+// Return SPI0 initialized and ready to use, configuring it if not already done.
+func getSPI0() machine.SPI {
+	spi := machine.SPI0
+	if !spi0Configured {
+		// Set the chip select line for the flash chip to inactive.
+		spiFlashCSPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+		spiFlashCSPin.High()
+
+		// Set the chip select line for the LCD controller to inactive.
+		machine.LCD_CS.Configure(machine.PinConfig{Mode: machine.PinOutput})
+		machine.LCD_CS.High()
+
+		// Configure the SPI bus.
+		spi.Configure(machine.SPIConfig{
+			Frequency: 8_000_000, // 8MHz is the maximum the nrf52832 supports
+			SCK:       machine.SPI0_SCK_PIN,
+			SDO:       machine.SPI0_SDO_PIN,
+			SDI:       machine.SPI0_SDI_PIN,
+			Mode:      3,
+		})
+
+		// Put the flash controller in deep power-down.
+		// This is done so that as long as the SPI flash isn't explicitly
+		// initialized, it won't waste any power.
+		spiFlashCSPin.Low()
+		spi.Tx([]byte{0xB9}, nil) // deep power down
+		spiFlashCSPin.High()
+	}
+	return spi
+}
+
 type mainDisplay struct{}
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
-	// Set the chip select line for the flash chip to inactive.
-	cs := machine.Pin(5) // SPI CS
-	cs.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	cs.High()
-
-	// Configure the SPI bus.
-	// TODO: use RGB444 for better performance
-	spi := machine.SPI0
-	spi.Configure(machine.SPIConfig{
-		Frequency: 8_000_000, // 8MHz is the maximum the nrf52832 supports
-		SCK:       machine.SPI0_SCK_PIN,
-		SDO:       machine.SPI0_SDO_PIN,
-		SDI:       machine.SPI0_SDI_PIN,
-		Mode:      3,
-	})
-
 	// Configure the display.
+	// TODO: use RGB444 for better performance
+	spi := getSPI0()
 	display := st7789.New(spi,
 		machine.LCD_RESET,
 		machine.LCD_RS, // data/command
