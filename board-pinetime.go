@@ -160,17 +160,10 @@ func (d mainDisplay) ConfigureTouch() TouchInput {
 	// level interrupt), but in the meantime we'll use this quick-n-dirty hack.
 	nrf.P0.PIN_CNF[touchInterruptPin].Set(nrf.GPIO_PIN_CNF_DIR_Input<<nrf.GPIO_PIN_CNF_DIR_Pos | nrf.GPIO_PIN_CNF_INPUT_Connect<<nrf.GPIO_PIN_CNF_INPUT_Pos | nrf.GPIO_PIN_CNF_SENSE_Low<<nrf.GPIO_PIN_CNF_SENSE_Pos)
 
-	// Run I2C at a high speed (400KHz).
-	touchI2C.Configure(machine.I2CConfig{
-		Frequency: 400 * machine.KHz,
-		SDA:       machine.Pin(6),
-		SCL:       machine.Pin(7),
-	})
+	configureI2CBus()
 
 	return touchInput{}
 }
-
-var touchI2C = machine.I2C1
 
 var touchPoints [1]TouchPoint
 
@@ -185,7 +178,7 @@ func (input touchInput) ReadTouch() []TouchPoint {
 	// goes high but doesn't go low on its own. We do that manually once no more
 	// touches are read from the touch controller.
 	if nrf.P0.LATCH.Get()&(1<<touchInterruptPin) != 0 {
-		touchI2C.ReadRegister(21, 1, touchData)
+		i2cBus.ReadRegister(21, 1, touchData)
 		num := touchData[1] & 0x0f
 		if num == 0 {
 			touchID++ // for the next time
@@ -259,4 +252,22 @@ func (b *singleButton) NextEvent() KeyEvent {
 	}
 	b.previousState = b.state
 	return e
+}
+
+var i2cBus *machine.I2C
+
+func configureI2CBus() {
+	// Run I2C at a high speed (400KHz).
+	if i2cBus == nil {
+		i2cBus = machine.I2C1
+		i2cBus.Configure(machine.I2CConfig{
+			Frequency: 400 * machine.KHz,
+			SDA:       machine.Pin(6),
+			SCL:       machine.Pin(7),
+		})
+
+		// Disable the heart rate sensor on startup, to be enabled when a driver
+		// configures it. It consumes around 110µA when left enabled.
+		machine.I2C1.WriteRegister(0x44, 0x0C, []byte{0x00})
+	}
 }
