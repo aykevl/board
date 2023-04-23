@@ -33,6 +33,11 @@ func init() {
 	// runtime power consumpton of the CPU core (almost halving the current
 	// required).
 	nrf.POWER.DCDCEN.Set(nrf.POWER_DCDCEN_DCDCEN)
+
+	// The UART is left enabled in the Wasp-OS bootloader.
+	// This causes a 1.25mA increase in current consumption.
+	// https://github.com/wasp-os/wasp-bootloader/pull/3
+	nrf.UART0.ENABLE.Set(0)
 }
 
 type mainBattery struct {
