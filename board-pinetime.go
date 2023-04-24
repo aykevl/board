@@ -236,15 +236,30 @@ func (b *singleButton) ReadInput() {
 	// to be enough: a small delay is needed. This can be done by setting
 	// BUTTON_OUT high multiple times in a row, which doesn't do anything except
 	// introduce the needed delay.
-	// Four stores appear to be enough to get readings, I have added a fifth to
-	// be sure.
+	// Four stores appear to be enough to get readings, I have added a few more
+	// for more reliable readings (especially as this is important for the
+	// watchdog timer).
 	machine.BUTTON_OUT.High()
 	machine.BUTTON_OUT.High()
 	machine.BUTTON_OUT.High()
 	machine.BUTTON_OUT.High()
 	machine.BUTTON_OUT.High()
-	b.state = machine.BUTTON_IN.Get()
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
+	machine.BUTTON_OUT.High()
+	state := machine.BUTTON_IN.Get()
 	machine.BUTTON_OUT.Low()
+	b.state = state
+
+	// Reset the watchdog timer only when the button is not pressed.
+	// The watchdog is configured in the Wasp-OS bootloader, and we have to be
+	// careful not to reset the watchdog while the button is pressed so that a
+	// long press forces a WDT reset and lets us enter the bootloader.
+	// For details, see:
+	// https://wasp-os.readthedocs.io/en/latest/wasp.html#watchdog-protocol
+	if !state {
+		nrf.WDT.RR[0].Set(0x6E524635)
+	}
 }
 
 func (b *singleButton) NextEvent() KeyEvent {
