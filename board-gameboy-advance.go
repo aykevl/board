@@ -4,12 +4,14 @@ package board
 
 import (
 	"device/gba"
+	"errors"
 	"math/bits"
 	"runtime/volatile"
 	"time"
 	"unsafe"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
 )
 
 const (
@@ -85,6 +87,16 @@ func (d gbaDisplay) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 
 func (d gbaDisplay) Sleep(sleepEnabled bool) error {
 	return nil // nothign to do here
+}
+
+var errNoRotation = errors.New("error: SetRotation isn't supported")
+
+func (d gbaDisplay) Rotation() drivers.Rotation {
+	return drivers.Rotation0
+}
+
+func (d gbaDisplay) SetRotation(rotation drivers.Rotation) error {
+	return errNoRotation
 }
 
 type gbaButtons struct {

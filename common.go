@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
 )
 
 // Settings for the simulator. These can be modified at any time, but it is
@@ -97,6 +98,19 @@ type Displayer[T pixel.Color] interface {
 
 	// Enter or exit sleep mode.
 	Sleep(sleepEnabled bool) error
+
+	// Return the current screen rotation.
+	// Note that some screens are by default configured with rotation, so by
+	// default you may not get drivers.Rotation0.
+	Rotation() drivers.Rotation
+
+	// Set a given rotation. For example, to rotate by 180° you can use:
+	//
+	// 	SetRotation((Rotation() + 2) % 4)
+	//
+	// Not all displays support rotation, in which case they will return an
+	// error.
+	SetRotation(drivers.Rotation) error
 }
 
 // TouchInput reads the touch screen (resistive/capacitive) on a display and

@@ -6,6 +6,7 @@ package board
 // hardware. This avoids potentially long edit-flash-test cycles.
 
 import (
+	"errors"
 	"math/rand"
 	"os"
 	"runtime"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/aykevl/tinygl/pixel"
 	"github.com/veandco/go-sdl2/sdl"
+	"tinygo.org/x/drivers"
 )
 
 const (
@@ -310,6 +312,17 @@ func (s *sdlscreen) Sleep(sleepEnabled bool) error {
 	// TODO: use a different gray than when the backlight is set to zero, to
 	// indicate sleep mode.
 	return nil
+}
+
+var errNoRotation = errors.New("error: SetRotation isn't supported")
+
+func (s *sdlscreen) Rotation() drivers.Rotation {
+	return drivers.Rotation0
+}
+
+func (s *sdlscreen) SetRotation(rotation drivers.Rotation) error {
+	// TODO: implement this, to be able to test rotation support.
+	return errNoRotation
 }
 
 type sdltouch struct{}
