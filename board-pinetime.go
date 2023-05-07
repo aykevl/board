@@ -178,12 +178,38 @@ var touchID uint32 = 1
 
 var touchData = make([]byte, 6)
 
+var touchInitialized bool
+
+const touchI2CAddress = 0x15
+
 func (input touchInput) ReadTouch() []TouchPoint {
 	// Read the bit from the LATCH reister, which is set to high when TP_INT
 	// goes high but doesn't go low on its own. We do that manually once no more
 	// touches are read from the touch controller.
 	if nrf.P0.LATCH.Get()&(1<<touchInterruptPin) != 0 {
-		i2cBus.ReadRegister(21, 1, touchData)
+		if !touchInitialized {
+			// Initialize the touch controller once we get the first touch.
+			// Doing it this way as the I2C bus appears unresponsive outside a
+			// touch event.
+			touchInitialized = true
+
+			// These are the values as set by InfiniTime.
+			//     i2cBus.Tx(touchI2CAddress, []byte{0xEC, 0b00000101}, nil)
+			//     i2cBus.Tx(touchI2CAddress, []byte{0xFA, 0b01110000}, nil)
+			// Unfortunately, they mess with the logic that we have, so we'd
+			// rather reset to the default values. But reading the registers
+			// just returns 0, which isn't the actual reset value (setting them
+			// to 0 breaks touch input entirely), so we have to guess.
+			//
+			// The following appears to work well with both the reset value and
+			// with the values from InfiniTime:
+			//   [0] EnDClick (disabled, enabled in InfiniTime)
+			//   [1] EnConUD  (disabled)
+			//   [2] EnConLR  (enabled)
+			i2cBus.Tx(touchI2CAddress, []byte{0xEC, 0b00000100}, nil)
+		}
+
+		i2cBus.ReadRegister(touchI2CAddress, 1, touchData)
 		num := touchData[1] & 0x0f
 		if num == 0 {
 			touchID++ // for the next time
