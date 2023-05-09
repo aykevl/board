@@ -179,3 +179,39 @@ func (k KeyEvent) Key() Key {
 func (k KeyEvent) Pressed() bool {
 	return k&keyReleased == 0
 }
+
+// Default lithium battery charge curve.
+// This data is taken from the InfiniTime project:
+// https://github.com/InfiniTimeOrg/InfiniTime/pull/1444
+// It is unlikely to be very accurate for other batteries, but it's a reasonable
+// approximation if no specific discharge curve has been made.
+var lithumBatteryApproximation = batteryApproximation{
+	voltages: [6]uint16{3500, 3600, 3700, 3750, 3900, 4180},
+	percents: [6]int8{0, 10, 25, 50, 75, 100},
+}
+
+type batteryApproximation struct {
+	voltages [6]uint16
+	percents [6]int8
+}
+
+func (approx *batteryApproximation) approximate(microvolts uint32) int8 {
+	if microvolts <= uint32(approx.voltages[0])*1000 {
+		return 0 // below the lowest value
+	}
+	for i, v := range approx.voltages {
+		if uint32(v)*1000 > microvolts {
+			voltStart := uint32(approx.voltages[i-1]) * 1000
+			voltEnd := uint32(v) * 1000
+			percentStart := approx.percents[i-1]
+			percentEnd := approx.percents[i]
+			voltOffset := microvolts - voltStart
+			voltDiff := voltEnd - voltStart
+			percentDiff := percentEnd - percentStart
+			percentOffset := voltOffset * uint32(percentDiff) / uint32(voltDiff)
+			return int8(percentOffset + uint32(percentStart))
+		}
+	}
+	// Outside the table, so must be 100%.
+	return 100
+}

@@ -52,6 +52,6 @@ func (b dummyBattery) Configure() {
 	// nothing to do here
 }
 
-func (b dummyBattery) Status() (ChargeState, uint32) {
-	return b.state, 0
+func (b dummyBattery) Status() (ChargeState, uint32, int8) {
+	return b.state, 0, -1
 }

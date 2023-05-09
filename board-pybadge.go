@@ -32,14 +32,14 @@ func (b mainBattery) Configure() {
 	})
 }
 
-func (b mainBattery) Status() (ChargeState, uint32) {
+func (b mainBattery) Status() (ChargeState, uint32, int8) {
 	rawValue := machine.ADC{Pin: machine.A6}.Get()
 	// Formula to calculate microvolts:
 	//   rawValue * 6600_000 / 0x10000
 	// Simlified, to fit in 32-bit integers:
 	//   rawValue * 51562 / 512
 	microvolts := uint32(rawValue) * 51562 / 512
-	return UnknownBattery, microvolts
+	return UnknownBattery, microvolts, lithumBatteryApproximation.approximate(microvolts)
 }
 
 type mainDisplay struct{}

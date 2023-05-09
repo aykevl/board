@@ -43,6 +43,13 @@ func init() {
 type mainBattery struct {
 }
 
+var batteryPercent = batteryApproximation{
+	// Data is taken from this pull request:
+	// https://github.com/InfiniTimeOrg/InfiniTime/pull/1444/files
+	voltages: [6]uint16{3500, 3600, 3700, 3750, 3900, 4180},
+	percents: [6]int8{0, 10, 25, 50, 75, 100},
+}
+
 func (b mainBattery) Configure() {
 	chargeIndicationPin.Configure(machine.PinConfig{Mode: machine.PinInput})
 	powerPresencePin.Configure(machine.PinConfig{Mode: machine.PinInput})
@@ -54,7 +61,7 @@ func (b mainBattery) Configure() {
 	machine.ADC{Pin: batteryVoltagePin}.Configure(machine.ADCConfig{})
 }
 
-func (b mainBattery) Status() (status ChargeState, microvolts uint32) {
+func (b mainBattery) Status() (status ChargeState, microvolts uint32, percent int8) {
 	rawValue := machine.ADC{Pin: batteryVoltagePin}.Get()
 	// Formula to calculate microvolts:
 	//   rawValue * 6000_000 / 0x10000
@@ -71,6 +78,8 @@ func (b mainBattery) Status() (status ChargeState, microvolts uint32) {
 	} else {
 		status = Discharging
 	}
+	// TODO: percent while charging
+	percent = batteryPercent.approximate(microvolts)
 	return
 }
 

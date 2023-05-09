@@ -34,7 +34,7 @@ func main() {
 	// Assert that board.Power uses the usual interface.
 	var _ interface {
 		Configure()
-		Status() (state board.ChargeState, microvolts uint32)
+		Status() (state board.ChargeState, microvolts uint32, percent int8)
 	} = board.Power
 }
 
