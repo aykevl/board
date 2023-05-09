@@ -57,10 +57,11 @@ func (b mainBattery) Configure() {
 func (b mainBattery) Status() (status ChargeState, microvolts uint32) {
 	rawValue := machine.ADC{Pin: batteryVoltagePin}.Get()
 	// Formula to calculate microvolts:
-	//   rawValue * 6600_000 / 0x10000
+	//   rawValue * 6000_000 / 0x10000
 	// Simlified, to fit in 32-bit integers:
-	//   rawValue * 51562 / 512
-	microvolts = uint32(rawValue) * 51562 / 512
+	//   rawValue * (6000_000/128) / (0x1000/128)
+	//   rawValue * 46875 / 512
+	microvolts = uint32(rawValue) * 46875 / 512
 	isCharging := chargeIndicationPin.Get() == false  // low when charging
 	isPowerPresent := powerPresencePin.Get() == false // low when present
 	if isCharging {
