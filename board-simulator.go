@@ -267,6 +267,11 @@ func (s *sdlscreen) Display() error {
 }
 
 func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
+	displayWidth, displayHeight := s.Size()
+	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
+		x+width > displayWidth || y+height > displayHeight {
+		return errors.New("board: drawing out of bounds")
+	}
 	var rect sdl.Rect
 	drawStart := time.Now()
 	lastUpdate := drawStart
