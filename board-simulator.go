@@ -6,15 +6,18 @@ package board
 // hardware. This avoids potentially long edit-flash-test cycles.
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"io"
 	"math/rand"
 	"os"
-	"runtime"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
-	"github.com/veandco/go-sdl2/sdl"
 	"tinygo.org/x/drivers"
 )
 
@@ -62,12 +65,9 @@ func (p simulatedPower) Status() (state ChargeState, microvolts uint32, percent 
 
 type mainDisplay struct{}
 
-type sdlscreen struct {
-	surface       *sdl.Surface // window surface
-	framebuffer   *sdl.Surface // framebuffer as stored by DrawRGBBitmap8
-	window        *sdl.Window
-	scale         int
-	brightness    bool
+type fyneScreen struct {
+	width         int
+	height        int
 	keyevents     []KeyEvent
 	keyeventsLock sync.Mutex
 	touchID       uint32
@@ -75,76 +75,16 @@ type sdlscreen struct {
 	touchesLock   sync.Mutex
 }
 
-var screen = &sdlscreen{
-	scale:      1,
-	brightness: false,
-}
-
-var sdlStart sync.Once
-
-func startSDL() {
-	// Create a main loop for SDL2. I'm not entirely sure this is safe (it may
-	// need to run on the main thread).
-	mainRunning := make(chan struct{})
-	sdlStart.Do(func() {
-		go func() {
-			runtime.LockOSThread()
-			sdl.Main(func() {
-				close(mainRunning)
-				for {
-					time.Sleep(time.Hour)
-				}
-			})
-		}()
-		<-mainRunning
-
-		// Create the SDL window.
-		sdl.Do(func() {
-			var err error
-			sdl.SetHint("SDL_VIDEODRIVER", "wayland,x11")
-			sdl.Init(sdl.INIT_EVERYTHING)
-			screen.window, err = sdl.CreateWindow(Simulator.WindowTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, int32(Simulator.WindowWidth*screen.scale), int32(Simulator.WindowHeight*screen.scale), sdl.WINDOW_SHOWN|sdl.WINDOW_ALLOW_HIGHDPI)
-			if err != nil {
-				panic("failed to create SDL window: " + err.Error())
-			}
-
-			screen.surface, err = screen.window.GetSurface()
-			if err != nil {
-				panic("failed to create SDL surface: " + err.Error())
-			}
-
-			// Create framebuffer to write to.
-			screen.framebuffer, err = sdl.CreateRGBSurfaceWithFormat(0, screen.surface.W, screen.surface.H, 8, screen.surface.Format.Format)
-			if err != nil {
-				panic("failed to create pseudo-framebuffer:" + err.Error())
-			}
-
-			// Fill framebuffer with random data. This simulates power-on behavior.
-			var rect sdl.Rect
-			for y := 0; y < int(screen.surface.H); y++ {
-				for x := 0; x < int(screen.surface.W); x++ {
-					c := rand.Uint32()
-					rect.X = int32(x * screen.scale)
-					rect.Y = int32(y * screen.scale)
-					rect.W = int32(screen.scale)
-					rect.H = int32(screen.scale)
-					screen.framebuffer.FillRect(&rect, c)
-				}
-			}
-
-			// Initialize display to black.
-			screen.drawSurface()
-			screen.window.UpdateSurface()
-		})
-	})
-}
+var screen = &fyneScreen{}
 
 // Configure returns a new display ready to draw on.
 //
 // Boards without a display will return nil.
 func (d mainDisplay) Configure() Displayer[pixel.RGB888] {
-	// TODO: use something like golang.org/x/exp/shiny to avoid CGo.
-	startSDL()
+	startWindow()
+	screen.width = Simulator.WindowWidth
+	screen.height = Simulator.WindowHeight
+	windowSendCommand(fmt.Sprintf("display %d %d", screen.width, screen.height), nil)
 	return screen
 }
 
@@ -161,11 +101,8 @@ func (d mainDisplay) MaxBrightness() int {
 // A value of 0 turns the backlight off entirely (but may leave the display
 // running with nothing visible).
 func (d mainDisplay) SetBrightness(level int) {
-	screen.brightness = level > 0
-	sdl.Do(func() {
-		screen.drawSurface()
-		screen.window.UpdateSurface()
-	})
+	// Send the current and max brightness levels.
+	windowSendCommand(fmt.Sprintf("display-brightness %d %d", level, 1), nil)
 }
 
 // Wait until the next vertical blanking interval (vblank) interrupt is
@@ -199,93 +136,25 @@ func (d mainDisplay) PPI() int {
 }
 
 func (d mainDisplay) ConfigureTouch() TouchInput {
-	startSDL()
+	startWindow()
 
 	return sdltouch{}
 }
 
-func (s *sdlscreen) drawSurface() {
-	if s.brightness {
-		s.framebuffer.Blit(nil, s.surface, nil)
-	} else {
-		gray := sdl.MapRGB(s.framebuffer.Format, 96, 96, 96)
-		s.surface.FillRect(nil, gray)
-	}
-}
-
-func (s *sdlscreen) Display() error {
-	sdl.Do(func() {
-		s.drawSurface()
-		for {
-			event := sdl.PollEvent()
-			if event == nil {
-				break
-			}
-			switch event := event.(type) {
-			case *sdl.QuitEvent:
-				os.Exit(0)
-			case *sdl.WindowEvent:
-				s.window.UpdateSurface()
-			case *sdl.KeyboardEvent:
-				screen.keyeventsLock.Lock()
-				keyevent := decodeSDLKeyboardEvent(event)
-				screen.keyevents = append(screen.keyevents, keyevent)
-				screen.keyeventsLock.Unlock()
-			case *sdl.MouseButtonEvent:
-				// Only capture left clicks with a mouse.
-				if event.Button == sdl.BUTTON_LEFT {
-					screen.touchesLock.Lock()
-					switch event.Type {
-					case sdl.MOUSEBUTTONDOWN:
-						s.touchID++
-						screen.touches[0] = TouchPoint{
-							ID: s.touchID,
-							X:  int16(event.X),
-							Y:  int16(event.Y),
-						}
-					case sdl.MOUSEBUTTONUP:
-						screen.touches[0] = TouchPoint{} // no active touch
-					}
-					screen.touchesLock.Unlock()
-				}
-			case *sdl.MouseMotionEvent:
-				// Only capture dragging with the left mouse button.
-				if event.Type == sdl.MOUSEMOTION && event.State&sdl.BUTTON_LEFT != 0 {
-					screen.touchesLock.Lock()
-					screen.touches[0] = TouchPoint{
-						ID: s.touchID,
-						X:  int16(event.X),
-						Y:  int16(event.Y),
-					}
-					screen.touchesLock.Unlock()
-				}
-			}
-		}
-		screen.window.UpdateSurface()
-	})
+func (s *fyneScreen) Display() error {
+	// Nothing to do here.
 	return nil
 }
 
-func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
+func (s *fyneScreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
 	displayWidth, displayHeight := s.Size()
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
 		x+width > displayWidth || y+height > displayHeight {
 		return errors.New("board: drawing out of bounds")
 	}
-	var rect sdl.Rect
 	drawStart := time.Now()
 	lastUpdate := drawStart
 	for bufy := 0; bufy < int(height); bufy++ {
-		for bufx := 0; bufx < int(width); bufx++ {
-			index := (bufy*int(width) + bufx) * 3
-			c := sdl.MapRGB(s.framebuffer.Format, buf[index+0], buf[index+1], buf[index+2])
-			rect.X = int32((bufx + int(x)) * s.scale)
-			rect.Y = int32((bufy + int(y)) * s.scale)
-			rect.W = int32(s.scale)
-			rect.H = int32(s.scale)
-			s.framebuffer.FillRect(&rect, c)
-		}
-
 		// Delay drawing a bit, to simulate a slow SPI bus.
 		if Simulator.WindowDrawSpeed != 0 {
 			now := time.Now()
@@ -297,24 +166,23 @@ func (s *sdlscreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) 
 			}
 
 			if now.Sub(lastUpdate) > 5*time.Millisecond {
-				sdl.Do(func() {
-					s.drawSurface()
-					screen.window.UpdateSurface()
-				})
 				lastUpdate = now
 			}
 		}
+
+		index := (bufy * int(width)) * 3
+		lineBuf := buf[index : index+int(width)*3]
+		windowSendCommand(fmt.Sprintf("draw %d %d %d", x, int(y)+bufy, width), lineBuf)
 	}
 	return nil
 }
 
-func (s *sdlscreen) Size() (width, height int16) {
-	bounds := s.surface.Bounds().Size()
-	return int16(bounds.X / s.scale), int16(bounds.Y / s.scale)
+func (s *fyneScreen) Size() (width, height int16) {
+	return int16(s.width), int16(s.height)
 }
 
 // Set sleep mode for this screen.
-func (s *sdlscreen) Sleep(sleepEnabled bool) error {
+func (s *fyneScreen) Sleep(sleepEnabled bool) error {
 	// This is a no-op.
 	// TODO: use a different gray than when the backlight is set to zero, to
 	// indicate sleep mode.
@@ -323,11 +191,11 @@ func (s *sdlscreen) Sleep(sleepEnabled bool) error {
 
 var errNoRotation = errors.New("error: SetRotation isn't supported")
 
-func (s *sdlscreen) Rotation() drivers.Rotation {
+func (s *fyneScreen) Rotation() drivers.Rotation {
 	return drivers.Rotation0
 }
 
-func (s *sdlscreen) SetRotation(rotation drivers.Rotation) error {
+func (s *fyneScreen) SetRotation(rotation drivers.Rotation) error {
 	// TODO: implement this, to be able to test rotation support.
 	return errNoRotation
 }
@@ -365,32 +233,121 @@ func (b buttonsConfig) NextEvent() KeyEvent {
 	return NoKeyEvent
 }
 
-func decodeSDLKeyboardEvent(event *sdl.KeyboardEvent) KeyEvent {
-	var e KeyEvent
-	switch event.Keysym.Sym {
-	case sdl.K_LEFT:
-		e = KeyLeft
-	case sdl.K_RIGHT:
-		e = KeyRight
-	case sdl.K_UP:
-		e = KeyUp
-	case sdl.K_DOWN:
-		e = KeyDown
-	case sdl.K_ESCAPE:
-		e = KeyEscape
-	case sdl.K_RETURN:
-		e = KeyEnter
-	case sdl.K_SPACE:
-		e = KeySpace
-	case sdl.K_a:
-		e = KeyA
-	case sdl.K_b:
-		e = KeyB
-	default:
-		return NoKeyEvent
+var (
+	fyneStart    sync.Once
+	windowLock   sync.Mutex
+	windowStdin  io.WriteCloser
+	windowStdout io.ReadCloser
+)
+
+// Ensure the window is running in a separate process, starting it if necessary.
+func startWindow() {
+	// Create a main loop for Fyne.
+	windowRunning := make(chan struct{})
+	fyneStart.Do(func() {
+		// Start the separate process that manages the window.
+		go func() {
+			cmd := exec.Command(os.Args[0], runWindowCommand)
+			cmd.Stderr = os.Stderr
+			windowStdin, _ = cmd.StdinPipe()
+			windowStdout, _ = cmd.StdoutPipe()
+			err := cmd.Start()
+			if err != nil {
+				fmt.Fprintln(os.Stdout, "could not start window process:", err)
+				os.Exit(1)
+			}
+			close(windowRunning)
+			err = cmd.Wait()
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					os.Exit(exitErr.ExitCode())
+				}
+				os.Exit(1)
+			}
+			// The window was closed, so exit.
+			os.Exit(0)
+		}()
+		<-windowRunning
+
+		// Listen for events (keyboard/touch).
+		go windowListenEvents()
+
+		// Do some initialization.
+		windowSendCommand("title "+Simulator.WindowTitle, nil)
+	})
+}
+
+// Send a command to the separate process that manages the window.
+// The command is a single line (without newline). The data part is optional
+// binary data that can be sent with the command. The size of this binary data
+// must be part of the textual command.
+func windowSendCommand(command string, data []byte) {
+	windowLock.Lock()
+	defer windowLock.Unlock()
+
+	windowStdin.Write([]byte(command + "\n"))
+	windowStdin.Write(data)
+}
+
+// Goroutine that listens for window events like button and touch (keyboard and
+// mouse).
+func windowListenEvents() {
+	r := bufio.NewReader(windowStdout)
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Fprintln(os.Stderr, "failed to read I/O events from child process:", err)
+		}
+		cmd := strings.Fields(line)[0]
+		switch cmd {
+		case "keypress", "keyrelease":
+			// Read the key code.
+			var key KeyEvent
+			fmt.Sscanf(line, "%s %d", &cmd, &key)
+			if cmd == "keyrelease" {
+				key |= keyReleased
+			}
+
+			// Add the key code to the
+			screen.keyeventsLock.Lock()
+			screen.keyevents = append(screen.keyevents, key)
+			screen.keyeventsLock.Unlock()
+		case "mousedown":
+			// Read the event.
+			var x, y int16
+			fmt.Sscanf(line, "%s %d %d", &cmd, &x, &y)
+
+			// Update the touch state.
+			screen.touchesLock.Lock()
+			screen.touchID++
+			screen.touches[0] = TouchPoint{
+				ID: screen.touchID,
+				X:  x,
+				Y:  y,
+			}
+			screen.touchesLock.Unlock()
+		case "mouseup":
+			// End the current touch.
+			screen.touchesLock.Lock()
+			screen.touches[0] = TouchPoint{} // no active touch
+			screen.touchesLock.Unlock()
+		case "mousemove":
+			// Read the event.
+			var x, y int16
+			fmt.Sscanf(line, "%s %d %d", &cmd, &x, &y)
+
+			// Update the touch state.
+			screen.touchesLock.Lock()
+			if screen.touches[0].ID != 0 {
+				screen.touches[0].X = x
+				screen.touches[0].Y = y
+			}
+			screen.touchesLock.Unlock()
+		default:
+			fmt.Fprintln(os.Stderr, "unknown command:", cmd)
+		}
 	}
-	if event.Type == sdl.KEYUP {
-		e |= keyReleased
-	}
-	return e
 }
