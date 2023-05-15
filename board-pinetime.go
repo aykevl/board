@@ -150,10 +150,6 @@ func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
 	dummyWaitForVBlank(defaultInterval)
 }
 
-func (d mainDisplay) Size() (width, height int16) {
-	return 240, 240
-}
-
 func (d mainDisplay) PPI() int {
 	return 261
 }

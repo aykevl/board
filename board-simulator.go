@@ -125,11 +125,6 @@ func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
 	dummyWaitForVBlank(defaultInterval)
 }
 
-// Size of the display in pixels.
-func (d mainDisplay) Size() (width, height int16) {
-	return int16(Simulator.WindowWidth), int16(Simulator.WindowHeight)
-}
-
 // Pixels per inch for this display.
 func (d mainDisplay) PPI() int {
 	return Simulator.WindowPPI

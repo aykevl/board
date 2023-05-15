@@ -44,10 +44,6 @@ func (b mainBattery) Status() (ChargeState, uint32, int8) {
 
 type mainDisplay struct{}
 
-func (d mainDisplay) Size() (width, height int16) {
-	return 160, 128
-}
-
 func (d mainDisplay) PPI() int {
 	return 116 // 160px / (35.04mm / 25.4)
 }

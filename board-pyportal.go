@@ -60,10 +60,6 @@ func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
 	dummyWaitForVBlank(defaultInterval)
 }
 
-func (d mainDisplay) Size() (width, height int16) {
-	return 320, 240
-}
-
 func (d mainDisplay) PPI() int {
 	return 166 // appears to be the same size/resolution as the Gopher Badge and the MCH2022 badge
 }

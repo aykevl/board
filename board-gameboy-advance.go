@@ -26,10 +26,6 @@ var (
 
 type mainDisplay struct{}
 
-func (d mainDisplay) Size() (width, height int16) {
-	return 240, 160
-}
-
 func (d mainDisplay) PPI() int {
 	return 99
 }
