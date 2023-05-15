@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/st7789"
 )
 
@@ -224,24 +225,33 @@ func (input touchInput) ReadTouch() []TouchPoint {
 			// detects another touch while reading the touch data over I2C.
 			nrf.P0.LATCH.Set(1 << touchInterruptPin)
 		}
-		x := (uint16(touchData[2]&0xf) << 8) | uint16(touchData[3]) // x coord
-		y := (uint16(touchData[4]&0xf) << 8) | uint16(touchData[5]) // y coord
-		// TODO: account for screen rotation
+		rawX := (uint16(touchData[2]&0xf) << 8) | uint16(touchData[3]) // x coord
+		rawY := (uint16(touchData[4]&0xf) << 8) | uint16(touchData[5]) // y coord
+		x := int16(rawX)
+		y := int16(rawY)
 		if x < 0 {
 			x = 0
 		}
 		if x >= 240 {
-			x = 240
+			x = 239
 		}
 		if y < 0 {
 			y = 0
 		}
 		if y >= 240 {
-			y = 240
+			y = 239
+		}
+		if display != nil {
+			// The screen is upside down from the configured rotation, so also
+			// rotate the touch coordinates.
+			if display.Rotation() == drivers.Rotation0 {
+				x = 239 - x
+				y = 239 - y
+			}
 		}
 		touchPoints[0] = TouchPoint{
-			X:  int16(x),
-			Y:  int16(y),
+			X:  x,
+			Y:  y,
 			ID: touchID,
 		}
 		return touchPoints[:1]

@@ -6,7 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.3.4
 	github.com/aykevl/tinygl v0.0.0-20230408194035-b80322370d0d
 	golang.org/x/image v0.3.0
-	tinygo.org/x/drivers v0.24.1-0.20230427170051-c689c1183846
+	tinygo.org/x/drivers v0.24.1-0.20230514211640-9955e094661c
 )
 
 require (
@@ -22,6 +22,7 @@ require (
 	github.com/go-text/typesetting v0.0.0-20230405155246-bf9c697c6e16 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/goki/freetype v0.0.0-20220119013949-7a161fd3728c // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
