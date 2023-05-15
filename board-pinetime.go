@@ -1,4 +1,4 @@
-//go:build pinetime_devkit0
+//go:build pinetime || pinetime_devkit0
 
 package board
 
