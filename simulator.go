@@ -70,16 +70,28 @@ func windowMain() {
 		displayImageLock.Lock()
 		defer displayImageLock.Unlock()
 		img := image.NewRGBA(image.Rect(0, 0, w, h))
+		draw.Draw(img, image.Rect(0, 0, w, h), image.NewUniform(color.RGBA{
+			R: 192,
+			G: 192,
+			B: 192,
+		}), image.Pt(0, 0), draw.Over)
+		rect := displayImage.Bounds()
+		scale := h / rect.Dy()
+		width := rect.Dx() * scale
+		height := rect.Dy() * scale
+		x := (w - width) / 2
+		y := (h - height) / 2
+		displayRect := image.Rect(x, y, x+width, y+height)
 		if displayBrightness <= 0 {
 			// The backlight is off, so indicate this by making the screen gray.
-			draw.Draw(img, image.Rect(0, 0, w, h), image.NewUniform(color.RGBA{
+			draw.Draw(img, displayRect, image.NewUniform(color.RGBA{
 				R: 96,
 				G: 96,
 				B: 96,
-			}), image.Pt(0, 0), draw.Over)
+			}), image.Pt(0, 0), draw.Src)
 		} else {
 			// Draw the display as usual.
-			draw.NearestNeighbor.Scale(img, img.Rect, displayImage, displayImage.Bounds(), draw.Over, nil)
+			draw.NearestNeighbor.Scale(img, displayRect, displayImage, displayImage.Bounds(), draw.Src, nil)
 		}
 		return img
 	}
