@@ -63,7 +63,7 @@ var (
 // The main function for the window process.
 func windowMain() {
 	// Create a raster image to use as a display buffer.
-	displayImage = image.NewRGBA(image.Rect(0, 0, 0, 0))
+	displayImage = image.NewRGBA(image.Rect(0, 0, 240, 240))
 	display := &displayWidget{}
 	display.Generator = func(w, h int) image.Image {
 		displayImageLock.Lock()
