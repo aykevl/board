@@ -2,6 +2,7 @@ package board
 
 import (
 	"time"
+	"unsafe"
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
@@ -29,11 +30,18 @@ var Simulator = struct {
 	// For example, for 8MHz and 16 bits per color:
 	//     time.Second * 16 / 8e6
 	WindowDrawSpeed time.Duration
+
+	// Number of addressable LEDs used by default.
+	AddressableLEDs int
 }{
 	WindowTitle:  "Simulator",
 	WindowWidth:  240,
 	WindowHeight: 240,
 	WindowPPI:    120, // common on many modern displays (for example Retina is 254 / 2 = 127)
+
+	// This matches common event badges like the PyBadge and the MCH2022 badge
+	// (but not the SHA2017 badge which uses 6 RGBW LEDs).
+	AddressableLEDs: 5,
 }
 
 // ChargeState is the charging status of a battery.
@@ -214,4 +222,27 @@ func (approx *batteryApproximation) approximate(microvolts uint32) int8 {
 	}
 	// Outside the table, so must be 100%.
 	return 100
+}
+
+type dummyAddressableLEDs struct {
+	Data []pixel.LinearGRB888
+}
+
+func (l *dummyAddressableLEDs) Configure() {
+	// Nothing to do here.
+}
+
+func (l *dummyAddressableLEDs) Update() {
+	// Nothing to do here.
+}
+
+// Convert pixel data to a byte slice, for sending it to WS2812 LEDs for
+// example.
+func pixelsToBytes[T pixel.Color](pix []T) []byte {
+	if len(pix) == 0 {
+		return nil
+	}
+	var zeroColor T
+	ptr := unsafe.Pointer(unsafe.SliceData(pix))
+	return unsafe.Slice((*byte)(ptr), len(pix)*int(unsafe.Sizeof(zeroColor)))
 }

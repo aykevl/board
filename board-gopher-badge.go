@@ -9,6 +9,7 @@ import (
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/st7789"
+	"tinygo.org/x/drivers/ws2812"
 )
 
 const (
@@ -16,9 +17,10 @@ const (
 )
 
 var (
-	Power   = dummyBattery{state: UnknownBattery}
-	Display = mainDisplay{}
-	Buttons = &gpioButtons{}
+	Power           = dummyBattery{state: UnknownBattery}
+	Display         = mainDisplay{}
+	Buttons         = &gpioButtons{}
+	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 2)}
 )
 
 type mainDisplay struct{}
@@ -149,4 +151,18 @@ func (b *gpioButtons) NextEvent() KeyEvent {
 	b.previousState ^= (1 << index)
 
 	return e
+}
+
+type ws2812LEDs struct {
+	Data []pixel.LinearGRB888
+}
+
+func (l *ws2812LEDs) Configure() {
+	machine.WS2812.Configure(machine.PinConfig{Mode: machine.PinOutput})
+}
+
+// Send pixel data to the LEDs.
+func (l *ws2812LEDs) Update() {
+	ws := ws2812.Device{Pin: machine.WS2812}
+	ws.Write(pixelsToBytes(l.Data))
 }

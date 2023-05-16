@@ -8,6 +8,7 @@ import (
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/ili9341"
+	"tinygo.org/x/drivers/ws2812"
 )
 
 const (
@@ -15,9 +16,10 @@ const (
 )
 
 var (
-	Power   = dummyBattery{state: UnknownBattery} // unimplemented
-	Display = mainDisplay{}
-	Buttons = noButtons{}
+	Power           = dummyBattery{state: UnknownBattery} // unimplemented
+	Display         = mainDisplay{}
+	Buttons         = noButtons{}
+	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 5)}
 )
 
 type mainDisplay struct{}
@@ -61,4 +63,24 @@ func (d mainDisplay) PPI() int {
 
 func (d mainDisplay) ConfigureTouch() TouchInput {
 	return noTouch{}
+}
+
+type ws2812LEDs struct {
+	Data []pixel.LinearGRB888
+}
+
+func (l *ws2812LEDs) Configure() {
+	// Enable power to the LEDs
+	power := machine.PowerOn
+	power.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	power.High()
+
+	// Initialize the WS2812 data pin.
+	machine.WS2812.Configure(machine.PinConfig{Mode: machine.PinOutput})
+}
+
+// Send pixel data to the LEDs.
+func (l *ws2812LEDs) Update() {
+	ws := ws2812.Device{Pin: machine.WS2812}
+	ws.Write(pixelsToBytes(l.Data))
 }

@@ -16,9 +16,10 @@ const (
 )
 
 var (
-	Power   = dummyBattery{state: NoBattery}
-	Display = mainDisplay{}
-	Buttons = noButtons{}
+	Power           = dummyBattery{state: NoBattery}
+	Display         = mainDisplay{}
+	Buttons         = noButtons{}
+	AddressableLEDs = dummyAddressableLEDs{}
 )
 
 type mainDisplay struct{}

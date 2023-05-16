@@ -32,6 +32,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"golang.org/x/image/draw"
 )
@@ -53,16 +54,14 @@ var (
 	displayImage         *image.RGBA
 	displayMaxBrightness = 1
 	displayBrightness    = 0
+
+	ledsLock   sync.Mutex
+	leds       []color.RGBA
+	ledsPerRow = 6
 )
 
 // The main function for the window process.
 func windowMain() {
-	// Create a window.
-	a := app.New()
-	w := a.NewWindow("Simulator")
-	w.SetPadded(false)
-	w.SetFixedSize(true)
-
 	// Create a raster image to use as a display buffer.
 	displayImage = image.NewRGBA(image.Rect(0, 0, 0, 0))
 	display := &displayWidget{}
@@ -95,7 +94,42 @@ func windowMain() {
 		}
 		return img
 	}
-	w.SetContent(display)
+
+	// Create LEDs.
+	ledsWidget := canvas.NewRaster(func(w, h int) image.Image {
+		ledsLock.Lock()
+		defer ledsLock.Unlock()
+		img := image.NewRGBA(image.Rect(0, 0, w, h))
+
+		// Draw all the LEDs as squares, each 24 pixels in size with an 8 pixel
+		// gap.
+		rows := (len(leds) + ledsPerRow - 1) / ledsPerRow
+		scale := float64(h) / float64(rows*32)
+		col := 0
+		row := 0
+		for _, c := range leds {
+			x0 := int(float64(8+col*32) * scale)
+			x1 := int(float64(8+col*32+24) * scale)
+			y0 := int(float64(row*32) * scale)
+			y1 := int(float64(row*32+24) * scale)
+			area := image.Rect(x0, y0, x1, y1)
+			draw.Draw(img, area, image.NewUniform(c), image.Pt(0, 0), draw.Src)
+			col++
+			if col >= ledsPerRow {
+				col = 0
+				row++
+			}
+		}
+		return img
+	})
+	ledsWidget.Hidden = true
+
+	// Create a window.
+	a := app.New()
+	w := a.NewWindow("Simulator")
+	w.SetPadded(false)
+	w.SetFixedSize(true)
+	w.SetContent(fyne.NewContainerWithLayout(layout.NewVBoxLayout(), display, ledsWidget))
 
 	// Listen for keyboard events, and translate them to board API keycodes.
 	if deskCanvas, ok := w.Canvas().(desktop.Canvas); ok {
@@ -114,14 +148,14 @@ func windowMain() {
 	}
 
 	// Listen for events from the parent process (which includes display data).
-	go windowReceiveEvents(w, display)
+	go windowReceiveEvents(w, display, ledsWidget)
 
 	// Show the window.
 	w.ShowAndRun()
 }
 
 // Goroutine that listens for commands from the parent process.
-func windowReceiveEvents(w fyne.Window, display *displayWidget) {
+func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canvas.Raster) {
 	r := bufio.NewReader(os.Stdin)
 	for {
 		line, _ := r.ReadString('\n')
@@ -171,6 +205,36 @@ func windowReceiveEvents(w fyne.Window, display *displayWidget) {
 			}
 			displayImageLock.Unlock()
 			display.Refresh()
+		case "addressable-leds":
+			// Read the LED data.
+			var numLEDs int
+			fmt.Sscanf(line, "%s %d\n", &cmd, &numLEDs)
+			buf := make([]byte, numLEDs*3)
+			io.ReadFull(r, buf)
+
+			// Update the leds slice.
+			ledsLock.Lock()
+			if len(leds) != numLEDs {
+				// LEDs were configured for the first time (probably).
+				// Make sure we prepare for the given number of LEDs.
+				leds = make([]color.RGBA, numLEDs)
+				cols := ledsPerRow
+				if cols > len(leds) {
+					cols = len(leds)
+				}
+				rows := (len(leds) + ledsPerRow - 1) / ledsPerRow
+				ledsWidget.SetMinSize(fyne.NewSize(float32(cols*32+8), float32(rows*32)))
+				ledsWidget.Show()
+			}
+			for i := range leds {
+				leds[len(leds)-i-1] = color.RGBA{
+					R: buf[i*3+0],
+					G: buf[i*3+1],
+					B: buf[i*3+2],
+				}
+			}
+			ledsLock.Unlock()
+			ledsWidget.Refresh()
 		default:
 			fmt.Fprintln(os.Stderr, "unknown command:", cmd)
 		}

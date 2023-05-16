@@ -19,9 +19,10 @@ const (
 )
 
 var (
-	Power   = dummyBattery{state: UnknownBattery}
-	Display = mainDisplay{}
-	Buttons = &gbaButtons{}
+	Power           = dummyBattery{state: UnknownBattery}
+	Display         = mainDisplay{}
+	Buttons         = &gbaButtons{}
+	AddressableLEDs = dummyAddressableLEDs{}
 )
 
 type mainDisplay struct{}

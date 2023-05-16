@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	fyne.io/fyne/v2 v2.3.4
-	github.com/aykevl/tinygl v0.0.0-20230408194035-b80322370d0d
+	github.com/aykevl/tinygl v0.0.0-20230516123611-e2014057c724
 	golang.org/x/image v0.3.0
 	tinygo.org/x/drivers v0.24.1-0.20230514211640-9955e094661c
 )

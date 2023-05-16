@@ -32,9 +32,10 @@ const (
 // Support varies by board, but all boards have the following peripherals
 // defined.
 var (
-	Power   = simulatedPower{}
-	Display = mainDisplay{}
-	Buttons = buttonsConfig{}
+	Power           = simulatedPower{}
+	Display         = mainDisplay{}
+	Buttons         = buttonsConfig{}
+	AddressableLEDs = simulatedLEDs{}
 )
 
 type simulatedPower struct{}
@@ -226,6 +227,30 @@ func (b buttonsConfig) NextEvent() KeyEvent {
 		return event
 	}
 	return NoKeyEvent
+}
+
+type simulatedLEDs struct {
+	Data []pixel.RGB888
+}
+
+// Initialize the addressable LEDs. This must be called once before writing data
+// to the Data slice.
+//
+// The way to determine whether there are addressable LEDs on a given board, is
+// to configure them and then check the length of board.AddressableLEDs.Data.
+func (l *simulatedLEDs) Configure() {
+	startWindow()
+	l.Data = make([]pixel.RGB888, Simulator.AddressableLEDs)
+	l.Update()
+}
+
+// Update the LEDs with the color data in the Data field.
+//
+// Data[0] typically refers to the last color in the array, not the first, due
+// to the way these addressable LEDs are daisy-chained.
+func (l *simulatedLEDs) Update() {
+	cmd := fmt.Sprintf("addressable-leds %d", len(l.Data))
+	windowSendCommand(cmd, pixelsToBytes(l.Data))
 }
 
 var (

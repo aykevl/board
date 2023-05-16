@@ -35,6 +35,12 @@ func main() {
 		Configure()
 		Status() (state board.ChargeState, microvolts uint32, percent int8)
 	} = board.Power
+
+	// Assert that board.AddressableLEDs uses the usual interface.
+	var _ interface {
+		Configure()
+		Update()
+	} = &board.AddressableLEDs
 }
 
 func checkScreen[T pixel.Color](display board.Displayer[T]) {
