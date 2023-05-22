@@ -1,4 +1,4 @@
-//go:build pinetime || pinetime_devkit0
+//go:build pinetime
 
 package board
 
@@ -57,10 +57,14 @@ func (b mainBattery) Configure() {
 	powerPresencePin.Configure(machine.PinConfig{Mode: machine.PinInput})
 
 	// Configure the ADC.
-	// This doesn't actually do anything, but it's here in case the
-	// implementation changes.
+	// 256 samples are perhaps a little bit overkill, but it does seem to result
+	// in a slightly better value than 128.
 	machine.InitADC()
-	machine.ADC{Pin: batteryVoltagePin}.Configure(machine.ADCConfig{})
+	machine.ADC{Pin: batteryVoltagePin}.Configure(machine.ADCConfig{
+		Reference:  3000,
+		SampleTime: 40, // use the longest acquisition time
+		Samples:    256,
+	})
 }
 
 func (b mainBattery) Status() (status ChargeState, microvolts uint32, percent int8) {
