@@ -124,24 +124,27 @@ func getSPI0() machine.SPI {
 
 type mainDisplay struct{}
 
+var display *st7789.Device
+
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	// Configure the display.
 	// TODO: use RGB444 for better performance
 	spi := getSPI0()
-	display := st7789.New(spi,
+	disp := st7789.New(spi,
 		machine.LCD_RESET,
 		machine.LCD_RS, // data/command
 		machine.LCD_CS,
 		machine.LCD_BACKLIGHT_HIGH) // TODO: allow better backlight control
-	display.Configure(st7789.Config{
+	disp.Configure(st7789.Config{
 		Width:     240,
 		Height:    240,
 		Rotation:  st7789.ROTATION_180,
 		RowOffset: 80,
 	})
-	display.EnableBacklight(true) // disable the backlight
+	disp.EnableBacklight(true) // disable the backlight
 
-	return &display
+	display = &disp
+	return display
 }
 
 func (d mainDisplay) MaxBrightness() int {
