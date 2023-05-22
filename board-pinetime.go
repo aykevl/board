@@ -126,9 +126,10 @@ type mainDisplay struct{}
 
 var display *st7789.Device
 
-func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
+func (d mainDisplay) Configure() Displayer[pixel.RGB444BE] {
 	// Configure the display.
-	// TODO: use RGB444 for better performance
+	// RGB444 reduces theoretic update time by up to 25%, from 115.2ms to 86.4ms
+	// (28.8ms reduction).
 	spi := getSPI0()
 	disp := st7789.New(spi,
 		machine.LCD_RESET,
@@ -142,6 +143,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		RowOffset: 80,
 	})
 	disp.EnableBacklight(true) // disable the backlight
+	disp.SetColorFormat(st7789.ColorRGB444)
 
 	display = &disp
 	return display
