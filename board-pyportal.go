@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/ili9341"
 	"tinygo.org/x/drivers/touch"
 	"tinygo.org/x/drivers/touch/resistive"
@@ -25,6 +26,8 @@ var (
 
 type mainDisplay struct{}
 
+var display *ili9341.Device
+
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	// Initialize backlight and disable at startup.
 	backlight := machine.TFT_BACKLIGHT
@@ -32,7 +35,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	backlight.Low()
 
 	// Enable and configure display.
-	display := ili9341.NewParallel(
+	display = ili9341.NewParallel(
 		machine.LCD_DATA0,
 		machine.TFT_WR,
 		machine.TFT_DC,
@@ -102,10 +105,10 @@ func (input touchInput) ReadTouch() []TouchPoint {
 	// slightly different values.
 	// TODO: make this configurable?
 	const (
-		xmin = 16000
-		xmax = 54000
-		ymax = 22000
+		xmin = 54000
+		xmax = 16000
 		ymin = 48000
+		ymax = 22000
 	)
 	point := resistiveTouch.ReadTouchPoint()
 	if point.Z > 8192 {
@@ -129,8 +132,22 @@ func (input touchInput) ReadTouch() []TouchPoint {
 			}
 		}
 		lastTouchPoint = point
-		touchPoints[0].Y = int16(clamp(point.X, ymin, ymax, 0, 239))
-		touchPoints[0].X = int16(clamp(point.Y, xmin, xmax, 0, 319))
+		x := int16(clamp(point.X, ymin, ymax, 0, 239))
+		y := int16(clamp(point.Y, xmin, xmax, 0, 319))
+		if display != nil {
+			// Adjust for screen rotation.
+			switch display.Rotation() {
+			case drivers.Rotation90:
+				x, y = y, 239-x
+			case drivers.Rotation180:
+				x = 239 - x
+				y = 319 - y
+			case drivers.Rotation270:
+				x, y = 319-y, x
+			}
+		}
+		touchPoints[0].Y = y
+		touchPoints[0].X = x
 		return touchPoints[:1]
 	} else {
 		touchPoints[0].ID = 0
