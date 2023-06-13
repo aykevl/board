@@ -8,6 +8,7 @@ import (
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers/ili9341"
+	"tinygo.org/x/drivers/touch"
 	"tinygo.org/x/drivers/touch/resistive"
 )
 
@@ -94,6 +95,8 @@ type touchInput struct{}
 
 var touchID uint32
 
+var lastTouchPoint touch.Point
+
 func (input touchInput) ReadTouch() []TouchPoint {
 	// Values calibrated on the PyPortal I have. Other boards might have
 	// slightly different values.
@@ -109,7 +112,23 @@ func (input touchInput) ReadTouch() []TouchPoint {
 		if touchPoints[0].ID == 0 {
 			touchID++
 			touchPoints[0].ID = touchID
+		} else {
+			// Use some heuristics to filter out small changes in the pressure
+			// point and to filter out ADC noise. Pretty sure there are much
+			// better algorithms, but this one works well enough for now.
+			// The main problem is that movement isn't smooth but jumpy.
+			const hysteresisX = 2000
+			const hysteresisY = 1300
+			xdiff := point.X - lastTouchPoint.X
+			ydiff := point.Y - lastTouchPoint.Y
+			if xdiff < hysteresisX && xdiff > -hysteresisX {
+				point.X = lastTouchPoint.X
+			}
+			if ydiff < hysteresisY && ydiff > -hysteresisY {
+				point.Y = lastTouchPoint.Y
+			}
 		}
+		lastTouchPoint = point
 		touchPoints[0].Y = int16(clamp(point.X, ymin, ymax, 0, 239))
 		touchPoints[0].X = int16(clamp(point.Y, xmin, xmax, 0, 319))
 		return touchPoints[:1]
