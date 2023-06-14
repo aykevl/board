@@ -43,6 +43,11 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		Rotation: ili9341.Rotation270,
 	})
 
+	// Enable the TE ("tearing effect") pin to read vblank status.
+	te := machine.TFT_TE
+	te.Configure(machine.PinConfig{Mode: machine.PinInput})
+	display.EnableTEOutput(true)
+
 	return display
 }
 
@@ -55,10 +60,13 @@ func (d mainDisplay) SetBrightness(level int) {
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
-	// TODO: use the TE output of the ST7789 chip.
-	// This requires the following PR:
-	// https://github.com/tinygo-org/drivers/pull/543
-	dummyWaitForVBlank(defaultInterval)
+	// Wait until the display has finished updating.
+	// TODO: wait for a pin interrupt instead of blocking.
+	for machine.TFT_TE.Get() == true {
+	}
+	for machine.TFT_TE.Get() == false {
+	}
+
 }
 
 func (d mainDisplay) PPI() int {
