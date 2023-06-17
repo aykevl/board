@@ -25,6 +25,8 @@ var (
 
 type mainDisplay struct{}
 
+var display st7789.Device
+
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	machine.SPI0.Configure(machine.SPIConfig{
 		// Mode 3 appears to be compatible with mode 0, but is slightly
@@ -42,7 +44,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		Frequency: 62_500_000, // datasheet for st7789 says 16ns (62.5MHz) is the max clock speed
 	})
 
-	display := st7789.New(machine.SPI0,
+	display = st7789.New(machine.SPI0,
 		machine.TFT_RST,       // TFT_RESET
 		machine.TFT_WRX,       // TFT_DC
 		machine.TFT_CS,        // TFT_CS
@@ -72,7 +74,19 @@ func (d mainDisplay) SetBrightness(level int) {
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
-	dummyWaitForVBlank(defaultInterval)
+	// Lower the SPI frequency for reading: the ST7789 supports high frequency
+	// writes but reading is much slower.
+	machine.SPI0.SetBaudRate(10_000_000)
+
+	// Wait until the scanline wraps around to 0.
+	// This is also what the TE line does internally.
+	for display.GetScanLine() == 0 {
+	}
+	for display.GetScanLine() != 0 {
+	}
+
+	// Restore old baud rate.
+	machine.SPI0.SetBaudRate(62_500_000)
 }
 
 func (d mainDisplay) PPI() int {
