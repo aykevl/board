@@ -294,6 +294,12 @@ var touchInitialized bool
 const touchI2CAddress = 0x15
 
 func (input touchInput) ReadTouch() []TouchPoint {
+	// The touch controller is very sparsely documented. You can find datasheet
+	// in English and Chinese on the PineTime wiki:
+	// https://wiki.pine64.org/wiki/PineTime#Component_Datasheets
+	// The best documentation is in the Chinese documentation, you can use
+	// Google Translate to translate it to English.
+
 	// Read the bit from the LATCH reister, which is set to high when TP_INT
 	// goes high but doesn't go low on its own. We do that manually once no more
 	// touches are read from the touch controller.
@@ -307,17 +313,20 @@ func (input touchInput) ReadTouch() []TouchPoint {
 			// These are the values as set by InfiniTime.
 			//     i2cBus.Tx(touchI2CAddress, []byte{0xEC, 0b00000101}, nil)
 			//     i2cBus.Tx(touchI2CAddress, []byte{0xFA, 0b01110000}, nil)
-			// Unfortunately, they mess with the logic that we have, so we'd
-			// rather reset to the default values. But reading the registers
-			// just returns 0, which isn't the actual reset value (setting them
-			// to 0 breaks touch input entirely), so we have to guess.
-			//
-			// The following appears to work well with both the reset value and
-			// with the values from InfiniTime:
+
+			// MotionMask register:
 			//   [0] EnDClick (disabled, enabled in InfiniTime)
 			//   [1] EnConUD  (disabled)
 			//   [2] EnConLR  (enabled)
-			i2cBus.Tx(touchI2CAddress, []byte{0xEC, 0b00000100}, nil)
+			i2cBus.Tx(touchI2CAddress, []byte{0xEC, 0b0000_0100}, nil)
+
+			// IrqCtl register:
+			//   [7] EnTest   (disabled)
+			//   [6] EnTouch  (enabled)
+			//   [5] EnChange (enabled)
+			//   [4] EnMotion (enabled)
+			//   [0] OnceWLP  (disabled)
+			i2cBus.Tx(touchI2CAddress, []byte{0xFA, 0b0111_0000}, nil)
 		}
 
 		i2cBus.ReadRegister(touchI2CAddress, 1, touchData)
@@ -328,23 +337,22 @@ func (input touchInput) ReadTouch() []TouchPoint {
 			// There may be a small race condition here, if the touch controller
 			// detects another touch while reading the touch data over I2C.
 			nrf.P0.LATCH.Set(1 << touchInterruptPin)
+			touchPoints[0].ID = 0
+			return nil
 		}
 		rawX := (uint16(touchData[2]&0xf) << 8) | uint16(touchData[3]) // x coord
 		rawY := (uint16(touchData[4]&0xf) << 8) | uint16(touchData[5]) // y coord
+		// Filter out erroneous data.
+		if rawX >= 240 || rawY >= 240 {
+			// X or Y are erroneous (this happens quite frequently).
+			// Just return the previous value as a fallback.
+			if touchPoints[0].ID != 0 {
+				return touchPoints[:1]
+			}
+			return nil
+		}
 		x := int16(rawX)
 		y := int16(rawY)
-		if x < 0 {
-			x = 0
-		}
-		if x >= 240 {
-			x = 239
-		}
-		if y < 0 {
-			y = 0
-		}
-		if y >= 240 {
-			y = 239
-		}
 		if display != nil {
 			// The screen is upside down from the configured rotation, so also
 			// rotate the touch coordinates.
