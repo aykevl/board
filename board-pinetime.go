@@ -3,6 +3,7 @@
 package board
 
 import (
+	"device/arm"
 	"device/nrf"
 	"machine"
 	"time"
@@ -137,13 +138,20 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB444BE] {
 		machine.LCD_CS,
 		machine.LCD_BACKLIGHT_HIGH) // TODO: allow better backlight control
 	disp.Configure(st7789.Config{
-		Width:     240,
-		Height:    240,
-		Rotation:  st7789.ROTATION_180,
-		RowOffset: 80,
+		Width:      240,
+		Height:     240,
+		Rotation:   st7789.ROTATION_180,
+		RowOffset:  80,
+		FrameRate:  st7789.FRAMERATE_39,
+		VSyncLines: 32, // needed for VBlank, not sure why
 	})
 	disp.EnableBacklight(true) // disable the backlight
 	disp.SetColorFormat(st7789.ColorRGB444)
+
+	// Initialize these pins as regular pins too, for WaitForVBlank.
+	machine.LCD_SCK.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	machine.LCD_SCK.Low()
+	machine.LCD_SDI.Configure(machine.PinConfig{Mode: machine.PinOutput})
 
 	display = &disp
 	return display
@@ -158,7 +166,93 @@ func (d mainDisplay) SetBrightness(level int) {
 }
 
 func (d mainDisplay) WaitForVBlank(defaultInterval time.Duration) {
-	dummyWaitForVBlank(defaultInterval)
+	// Disable the SPI so we can manually communicate with the display.
+	machine.SPI0.Bus.ENABLE.Set(nrf.SPIM_ENABLE_ENABLE_Disabled)
+
+	// Wait until the scanline wraps around to 0.
+	// This is also what the TE line does internally.
+	// TODO: use time.Sleep() if we can, to save power.
+	for readDisplayValue(st7789.GSCAN, 16) == 0 {
+	}
+	for readDisplayValue(st7789.GSCAN, 16) != 0 {
+	}
+
+	// Re-enable the SPI.
+	machine.SPI0.Bus.ENABLE.Set(nrf.SPIM_ENABLE_ENABLE_Enabled)
+}
+
+// Wait for enough time between bitbanged high and low SPI pulses.
+func delaySPIClock() {
+	// 4 cycles, or 62.5ns.
+	// Together with the store, it is 6 cycles or 93.75ns.
+	arm.Asm("nop\nnop\nnop\nnop")
+}
+
+// Read a single value from the display, for example GSCAN, RDDID, etc.
+// The bits parameter indicates the number of bits that will be received.
+func readDisplayValue(cmd uint8, bits int) uint32 {
+	const (
+		cs  = machine.LCD_CS
+		dc  = machine.LCD_RS
+		sdi = machine.LCD_SDI
+		sck = machine.LCD_SCK
+	)
+
+	// Initialize bitbanged SPI.
+	delaySPIClock()
+	cs.Low()
+	dc.Low()
+	sdi.Configure(machine.PinConfig{Mode: machine.PinOutput})
+
+	// Clock out the command.
+	for i := 0; i < 8; i++ {
+		sdi.Set(cmd&0x80 != 0)
+		delaySPIClock()
+		sck.High()
+		delaySPIClock()
+		sck.Low()
+		cmd <<= 1
+	}
+	delaySPIClock()
+
+	// Dummy clock cycle (necessary for 24-bit and 32-bit read commands,
+	// according to the datasheet).
+	if bits >= 24 {
+		sck.High()
+		delaySPIClock()
+		sck.Low()
+		delaySPIClock()
+	}
+
+	// Read the result over SPI.
+	sdi.Configure(machine.PinConfig{Mode: machine.PinInputPulldown})
+	dc.High()
+	value := uint32(0)
+	for i := 0; i < bits; i++ {
+		sck.High()
+		delaySPIClock()
+		value <<= 1
+		if sdi.Get() {
+			value |= 1
+		}
+		sck.Low()
+		delaySPIClock()
+	}
+
+	// Dummy clock cycle, according to the datasheet needed in all cases but in
+	// my exprience only needed for 16-bit reads (GSCAN).
+	if bits == 16 {
+		sck.High()
+		delaySPIClock()
+		sck.Low()
+		delaySPIClock()
+	}
+
+	// Finish the transaction.
+	cs.High()
+	dc.High()
+
+	return value
 }
 
 func (d mainDisplay) PPI() int {
