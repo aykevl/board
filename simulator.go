@@ -50,10 +50,13 @@ func init() {
 }
 
 var (
-	displayImageLock     sync.Mutex
-	displayImage         *image.RGBA
-	displayMaxBrightness = 1
-	displayBrightness    = 0
+	displayImageLock         sync.Mutex
+	displayImage             *image.RGBA
+	displayScrollTopFixed    int
+	displayScrollBottomFixed int
+	displayScrollLine        int
+	displayMaxBrightness     = 1
+	displayBrightness        = 0
 
 	ledsLock   sync.Mutex
 	leds       []color.RGBA
@@ -90,7 +93,23 @@ func windowMain() {
 			}), image.Pt(0, 0), draw.Src)
 		} else {
 			// Draw the display as usual.
-			draw.NearestNeighbor.Scale(img, displayRect, displayImage, displayImage.Bounds(), draw.Src, nil)
+			scrolledImage := displayImage
+			if displayScrollLine != 0 {
+				// Hardware scrolling is in use, so scroll the middle part of
+				// the screen.
+				scrolledImage = image.NewRGBA(displayImage.Rect)
+				topH := displayScrollTopFixed
+				bottomH := displayScrollBottomFixed
+				childH := rect.Dy() - topH - bottomH
+				rotated := displayScrollLine - topH
+				rotatedUpH := childH - rotated
+				rotatedDownH := childH - rotatedUpH
+				draw.Copy(scrolledImage, image.Pt(0, 0), displayImage, image.Rect(0, 0, rect.Dx(), topH), draw.Over, nil)                                    // top fixed area
+				draw.Copy(scrolledImage, image.Pt(0, topH), displayImage, image.Rect(0, topH+rotatedDownH, rect.Dx(), topH+childH), draw.Over, nil)          // rotated up part
+				draw.Copy(scrolledImage, image.Pt(0, topH+rotatedUpH), displayImage, image.Rect(0, topH, rect.Dx(), topH+rotatedDownH), draw.Over, nil)      // rotated down part
+				draw.Copy(scrolledImage, image.Pt(0, rect.Dy()-bottomH), displayImage, image.Rect(0, rect.Dy()-bottomH, rect.Dx(), bottomH), draw.Over, nil) // bottom fixed area
+			}
+			draw.NearestNeighbor.Scale(img, displayRect, scrolledImage, scrolledImage.Bounds(), draw.Src, nil)
 		}
 		return img
 	}
@@ -203,6 +222,23 @@ func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canv
 					B: buf[x*3+2],
 				})
 			}
+			displayImageLock.Unlock()
+			display.Refresh()
+		case "scroll-start":
+			displayImageLock.Lock()
+			fmt.Sscanf(line, "%s %d %d\n", &cmd, &displayScrollTopFixed, &displayScrollBottomFixed)
+			displayImageLock.Unlock()
+			display.Refresh()
+		case "scroll":
+			displayImageLock.Lock()
+			fmt.Sscanf(line, "%s %d\n", &cmd, &displayScrollLine)
+			displayImageLock.Unlock()
+			display.Refresh()
+		case "scroll-stop":
+			displayImageLock.Lock()
+			displayScrollLine = 0
+			displayScrollTopFixed = 0
+			displayScrollBottomFixed = 0
 			displayImageLock.Unlock()
 			display.Refresh()
 		case "addressable-leds":

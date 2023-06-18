@@ -196,6 +196,18 @@ func (s *fyneScreen) SetRotation(rotation drivers.Rotation) error {
 	return errNoRotation
 }
 
+func (s *fyneScreen) SetScrollArea(topFixedArea, bottomFixedArea int16) {
+	windowSendCommand(fmt.Sprintf("scroll-start %d %d", topFixedArea, bottomFixedArea), nil)
+}
+
+func (s *fyneScreen) SetScroll(line int16) {
+	windowSendCommand(fmt.Sprintf("scroll %d", line), nil)
+}
+
+func (s *fyneScreen) StopScroll() {
+	windowSendCommand(fmt.Sprintf("scroll-stop"), nil)
+}
+
 type sdltouch struct{}
 
 func (s sdltouch) ReadTouch() []TouchPoint {
