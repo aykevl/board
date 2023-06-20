@@ -16,6 +16,7 @@ func main() {
 
 	// Assert that Display uses the usual interface.
 	var _ interface {
+		//Configure() // already checked above
 		PPI() int
 		ConfigureTouch() board.TouchInput
 		MaxBrightness() int
