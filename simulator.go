@@ -179,7 +179,14 @@ func windowMain() {
 func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canvas.Raster) {
 	r := bufio.NewReader(os.Stdin)
 	for {
-		line, _ := r.ReadString('\n')
+		line, err := r.ReadString('\n')
+		if err != nil {
+			if err != io.EOF {
+				fmt.Fprintln(os.Stderr, "unexpected error:", err)
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
 		cmd := strings.Fields(line)[0]
 		switch cmd {
 		case "display":
