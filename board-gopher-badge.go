@@ -51,7 +51,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		machine.TFT_BACKLIGHT) // TFT_LITE
 
 	display.Configure(st7789.Config{
-		Rotation: st7789.ROTATION_90,
+		Rotation: st7789.ROTATION_270,
 		Height:   320,
 
 		// Gamma data obtained from example code provided with the display:

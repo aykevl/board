@@ -140,7 +140,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB444BE] {
 	disp.Configure(st7789.Config{
 		Width:      240,
 		Height:     240,
-		Rotation:   st7789.ROTATION_180,
+		Rotation:   drivers.Rotation0,
 		RowOffset:  80,
 		FrameRate:  st7789.FRAMERATE_39,
 		VSyncLines: 32, // needed for VBlank, not sure why
@@ -356,7 +356,7 @@ func (input touchInput) ReadTouch() []TouchPoint {
 		if display != nil {
 			// The screen is upside down from the configured rotation, so also
 			// rotate the touch coordinates.
-			if display.Rotation() == drivers.Rotation0 {
+			if display.Rotation() == drivers.Rotation180 {
 				x = 239 - x
 				y = 239 - y
 			}

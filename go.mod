@@ -6,7 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.3.4
 	github.com/aykevl/tinygl v0.0.0-20230516123611-e2014057c724
 	golang.org/x/image v0.3.0
-	tinygo.org/x/drivers v0.24.1-0.20230520223205-95f0ca8c3ee0
+	tinygo.org/x/drivers v0.25.1-0.20230702163011-31538f1b2f80
 )
 
 require (
