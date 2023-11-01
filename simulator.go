@@ -76,6 +76,7 @@ func windowMain() {
 			R: 192,
 			G: 192,
 			B: 192,
+			A: 255,
 		}), image.Pt(0, 0), draw.Over)
 		rect := displayImage.Bounds()
 		scale := h / rect.Dy()
@@ -90,6 +91,7 @@ func windowMain() {
 				R: 96,
 				G: 96,
 				B: 96,
+				A: 255,
 			}), image.Pt(0, 0), draw.Src)
 		} else {
 			// Draw the display as usual.
@@ -191,6 +193,7 @@ func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canv
 						R: uint8(r >> 0),
 						G: uint8(r >> 8),
 						B: uint8(r >> 16),
+						A: 255,
 					})
 				}
 			}
@@ -220,6 +223,7 @@ func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canv
 					R: buf[x*3+0],
 					G: buf[x*3+1],
 					B: buf[x*3+2],
+					A: 255,
 				})
 			}
 			displayImageLock.Unlock()
@@ -267,6 +271,7 @@ func windowReceiveEvents(w fyne.Window, display *displayWidget, ledsWidget *canv
 					R: buf[i*3+0],
 					G: buf[i*3+1],
 					B: buf[i*3+2],
+					A: 255,
 				}
 			}
 			ledsLock.Unlock()
