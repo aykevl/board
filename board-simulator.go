@@ -33,6 +33,7 @@ const (
 // defined.
 var (
 	Power           = simulatedPower{}
+	Sensors         = &simulatedSensors{}
 	Display         = mainDisplay{}
 	Buttons         = buttonsConfig{}
 	AddressableLEDs = simulatedLEDs{}
@@ -239,6 +240,78 @@ func (b buttonsConfig) NextEvent() KeyEvent {
 		return event
 	}
 	return NoKeyEvent
+}
+
+type simulatedSensors struct {
+	configured drivers.Measurement
+	accel      [3]int32
+	temp       int32
+}
+
+// Configure configures all sensors as specified in the which parameter.
+// If there is an error, none of the sensors can be relied upon to work.
+func (s *simulatedSensors) Configure(which drivers.Measurement) error {
+	s.configured = which
+	return nil
+}
+
+// Update updates the sensor values as given in the which parameter.
+// All sensors in the which parameter must have been configured before, or the
+// behavior may be unpredictable.
+func (s *simulatedSensors) Update(which drivers.Measurement) error {
+	if which != s.configured&which {
+		// This is a bug. Don't check it on each board, but do check it in the
+		// simulator.
+		panic("asked to update sensors that weren't configured")
+	}
+
+	if which&drivers.Acceleration != 0 {
+		// Simulate the device in an upright position (like how you'd hold a
+		// phone when making a photo in portrait mode).
+		// Also add some noise to make the values more realistic.
+		s.accel[0] = rand.Int31n(30_000) - 15_000            // x
+		s.accel[1] = rand.Int31n(30_000) - 15_000 + 1000_000 // y + added gravity
+		s.accel[2] = rand.Int31n(30_000) - 15_000            // z
+	}
+	if which&drivers.Temperature != 0 {
+		// Temperature around 20°C (with some jitter thrown in for a good
+		// simulation).
+		s.temp = 20000 + rand.Int31n(200) - 100
+	}
+	return nil
+}
+
+// Acceleration returns the last read acceleration in µg (micro-gravity). This
+// includes gravity: when one of the axes is pointing straight to Earth and the
+// sensor is not moving the returned value will be around 1000000 or -1000000.
+//
+// The accelerometer values match those used on Android. When the device is
+// lying flat on a table, the Z axis is around 1g. When the device is rotated
+// 90° upright, the Y axis is around 1g. When the device is then rotated 90° to
+// the left (counter-clockwise), the X axis is around 1g.
+//
+// The simulator returns values as if the device is held upright like you'd hold
+// a phone while taking a selfie.
+func (s *simulatedSensors) Acceleration() (x, y, z int32) {
+	return s.accel[0], s.accel[1], s.accel[2]
+}
+
+// Steps returns the number of steps since the step counter started.
+// The uint32 value is assumed to be large enough for all practical use cases.
+//
+// The simulator currently returns the fixed value 0.
+func (s *simulatedSensors) Steps() (steps uint32) {
+	return 0 // TODO adjust from the UI
+}
+
+// Temperature returns the temperature that was last read from the sensor.
+// If there are multiple temperature sensors on a given board, the most accurate
+// result will be returned.
+//
+// The simulator returns a fixed temperature, with some jitter to make it look
+// more like a real-world sensor (no sensor is without noise).
+func (s *simulatedSensors) Temperature() int32 {
+	return s.temp
 }
 
 type simulatedLEDs struct {

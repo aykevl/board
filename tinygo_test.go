@@ -34,6 +34,13 @@ var definedGlobals = map[string][]string{
 		"Configure",
 		"Status",
 	},
+	"Sensors": []string{
+		"Configure",
+		"Update",
+		"Acceleration",
+		"Steps",
+		"Temperature",
+	},
 	"Display": []string{
 		"Configure",
 		"PPI",
@@ -96,6 +103,7 @@ func TestExported(t *testing.T) {
 			// Also set some defaults that aren't defined in board files (but in
 			// common.go, probably).
 			methodNames := map[string][]string{
+				"baseSensors":          definedGlobals["Sensors"],
 				"dummyAddressableLEDs": definedGlobals["AddressableLEDs"],
 				"dummyBattery":         definedGlobals["Power"],
 				"noButtons":            definedGlobals["Buttons"],

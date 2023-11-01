@@ -20,6 +20,7 @@ const (
 
 var (
 	Power           = dummyBattery{state: UnknownBattery}
+	Sensors         = baseSensors{}
 	Display         = mainDisplay{}
 	Buttons         = &gbaButtons{}
 	AddressableLEDs = dummyAddressableLEDs{}

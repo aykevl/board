@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/lis3dh"
 	"tinygo.org/x/drivers/st7789"
 	"tinygo.org/x/drivers/ws2812"
 )
@@ -18,10 +20,53 @@ const (
 
 var (
 	Power           = dummyBattery{state: UnknownBattery}
+	Sensors         = &allSensors{}
 	Display         = mainDisplay{}
 	Buttons         = &gpioButtons{}
 	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 2)}
 )
+
+type allSensors struct {
+	baseSensors
+	accelX, accelY, accelZ int32
+}
+
+var accel lis3dh.Device
+
+func (s *allSensors) Configure(which drivers.Measurement) error {
+	if which&(drivers.Acceleration|drivers.Temperature) != 0 {
+		machine.I2C0.Configure(machine.I2CConfig{
+			Frequency: 400 * machine.KHz,
+			SCL:       machine.I2C0_SCL_PIN,
+			SDA:       machine.I2C0_SDA_PIN,
+		})
+		accel = lis3dh.New(machine.I2C0)
+		accel.Configure()
+	}
+	return nil
+}
+
+func (s *allSensors) Update(which drivers.Measurement) error {
+	if which&drivers.Acceleration != 0 {
+		var err error
+		s.accelX, s.accelY, s.accelZ, err = accel.ReadAcceleration()
+		if err != nil {
+			return err
+		}
+	}
+	// TODO: read the temperature from the LIS3DH.
+	// I tried reading it uisng machine.ReadTemperature() but it was so
+	// inaccurate that it wasn't even usable (around -23°C in a >25°C room).
+	return nil
+}
+
+func (s *allSensors) Acceleration() (x, y, z int32) {
+	// Adjust accelerometer to match standard axes.
+	x = s.accelX
+	y = -s.accelY
+	z = -s.accelZ
+	return
+}
 
 type mainDisplay struct{}
 

@@ -18,6 +18,7 @@ const (
 
 var (
 	Power           = dummyBattery{state: NoBattery}
+	Sensors         = baseSensors{} // TODO: light, temperature
 	Display         = mainDisplay{}
 	Buttons         = noButtons{}
 	AddressableLEDs = dummyAddressableLEDs{}

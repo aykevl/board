@@ -17,6 +17,7 @@ const (
 
 var (
 	Power           = dummyBattery{state: UnknownBattery} // unimplemented
+	Sensors         = baseSensors{}
 	Display         = mainDisplay{}
 	Buttons         = noButtons{}
 	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 5)}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/aykevl/board"
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
 )
 
 func main() {
@@ -36,6 +37,16 @@ func main() {
 		Configure()
 		Status() (state board.ChargeState, microvolts uint32, percent int8)
 	} = board.Power
+
+	// All sensors must implement the exact same interface, even if some methods
+	// are unsupported.
+	var _ interface {
+		Configure(which drivers.Measurement) error
+		Update(which drivers.Measurement) error
+		Acceleration() (x, y, z int32)
+		Steps() uint32
+		Temperature() int32
+	} = board.Sensors
 
 	// Assert that board.AddressableLEDs uses the usual interface.
 	var _ interface {

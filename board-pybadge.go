@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/aykevl/tinygl/pixel"
+	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/lis3dh"
 	"tinygo.org/x/drivers/shifter"
 	"tinygo.org/x/drivers/st7735"
 	"tinygo.org/x/drivers/ws2812"
@@ -19,6 +21,7 @@ const (
 
 var (
 	Power           = mainBattery{}
+	Sensors         = &allSensors{}
 	Display         = mainDisplay{}
 	Buttons         = &buttonsConfig{}
 	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 5)}
@@ -42,6 +45,48 @@ func (b mainBattery) Status() (ChargeState, uint32, int8) {
 	//   rawValue * 51562 / 512
 	microvolts := uint32(rawValue) * 51562 / 512
 	return UnknownBattery, microvolts, lithumBatteryApproximation.approximate(microvolts)
+}
+
+type allSensors struct {
+	baseSensors
+	accelX, accelY, accelZ int32
+}
+
+var accel lis3dh.Device
+
+func (s *allSensors) Configure(which drivers.Measurement) error {
+	if which&drivers.Acceleration != 0 {
+		machine.I2C0.Configure(machine.I2CConfig{
+			Frequency: 400 * machine.KHz,
+			SCL:       machine.SCL_PIN,
+			SDA:       machine.SDA_PIN,
+		})
+		accel = lis3dh.New(machine.I2C0)
+		accel.Configure()
+	}
+	return nil
+}
+
+func (s *allSensors) Update(which drivers.Measurement) error {
+	// TODO:
+	// - read temperature from LIS3DH
+	// - read brightness value
+	if which&drivers.Acceleration != 0 {
+		var err error
+		s.accelX, s.accelY, s.accelZ, err = accel.ReadAcceleration()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *allSensors) Acceleration() (x, y, z int32) {
+	// Adjust accelerometer to match standard axes.
+	x = -s.accelX
+	y = s.accelY
+	z = -s.accelZ
+	return
 }
 
 type mainDisplay struct{}

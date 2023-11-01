@@ -246,3 +246,27 @@ func pixelsToBytes[T pixel.Color](pix []T) []byte {
 	ptr := unsafe.Pointer(unsafe.SliceData(pix))
 	return unsafe.Slice((*byte)(ptr), len(pix)*int(unsafe.Sizeof(zeroColor)))
 }
+
+// Dummy sensor value, to be embedded in actual drivers.Sensor implementations.
+type baseSensors struct {
+}
+
+func (s baseSensors) Configure(which drivers.Measurement) error {
+	return nil
+}
+
+func (s baseSensors) Update(which drivers.Measurement) error {
+	return nil
+}
+
+func (s baseSensors) Acceleration() (x, y, z int32) {
+	return 0, 0, 0
+}
+
+func (s baseSensors) Steps() uint32 {
+	return 0
+}
+
+func (s baseSensors) Temperature() int32 {
+	return 0
+}

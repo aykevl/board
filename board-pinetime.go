@@ -10,6 +10,7 @@ import (
 
 	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/bma42x"
 	"tinygo.org/x/drivers/st7789"
 )
 
@@ -25,6 +26,7 @@ const (
 
 var (
 	Power           = mainBattery{}
+	Sensors         = allSensors{}
 	Display         = mainDisplay{}
 	Buttons         = &singleButton{}
 	AddressableLEDs = dummyAddressableLEDs{}
@@ -430,18 +432,76 @@ func (b *singleButton) NextEvent() KeyEvent {
 
 var i2cBus *machine.I2C
 
-func configureI2CBus() {
+func initI2CBus() {
 	// Run I2C at a high speed (400KHz).
+	i2cBus.Configure(machine.I2CConfig{
+		Frequency: 400 * machine.KHz,
+		SDA:       machine.Pin(6),
+		SCL:       machine.Pin(7),
+	})
+}
+
+func configureI2CBus() {
 	if i2cBus == nil {
 		i2cBus = machine.I2C1
-		i2cBus.Configure(machine.I2CConfig{
-			Frequency: 400 * machine.KHz,
-			SDA:       machine.Pin(6),
-			SCL:       machine.Pin(7),
-		})
+		initI2CBus()
 
 		// Disable the heart rate sensor on startup, to be enabled when a driver
 		// configures it. It consumes around 110µA when left enabled.
 		machine.I2C1.WriteRegister(0x44, 0x0C, []byte{0x00})
 	}
+}
+
+type allSensors struct {
+}
+
+var accel *bma42x.Device
+
+func (s allSensors) Configure(which drivers.Measurement) error {
+	// Configure the accelerometer (either BMA421 or BMA425, depending on the
+	// PineTime variant).
+	accel = bma42x.NewI2C(machine.I2C1, bma42x.Address)
+	err := accel.Configure(bma42x.Config{
+		Device:   bma42x.DeviceBMA421 | bma42x.DeviceBMA425,
+		Features: bma42x.FeatureStepCounting,
+	})
+	if err != nil {
+		// Restart the I2C bus.
+		// I don't know why, but configuring the BMA421 while it is already
+		// configured freezes the I2C bus. The only recovery appears to be to
+		// restart the I2C bus entirely.
+		initI2CBus()
+		err = accel.Configure(bma42x.Config{
+			Device:   bma42x.DeviceBMA421 | bma42x.DeviceBMA425,
+			Features: bma42x.FeatureStepCounting,
+		})
+	}
+	return err
+}
+
+func (s allSensors) Update(which drivers.Measurement) error {
+	if which&(drivers.Acceleration|drivers.Temperature) != 0 {
+		err := accel.Update(which & (drivers.Acceleration | drivers.Temperature))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s allSensors) Acceleration() (x, y, z int32) {
+	rawX, rawY, rawZ := accel.Acceleration()
+	// Adjust accelerometer to match standard axes.
+	x = -rawY
+	y = -rawX
+	z = -rawZ
+	return
+}
+
+func (s allSensors) Steps() (steps uint32) {
+	return accel.Steps()
+}
+
+func (s allSensors) Temperature() int32 {
+	return accel.Temperature()
 }
