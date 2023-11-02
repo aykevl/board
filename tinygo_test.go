@@ -54,10 +54,6 @@ var definedGlobals = map[string][]string{
 		"ReadInput",
 		"NextEvent",
 	},
-	"AddressableLEDs": []string{
-		"Configure",
-		"Update",
-	},
 }
 
 func TestBoards(t *testing.T) {
@@ -103,10 +99,9 @@ func TestExported(t *testing.T) {
 			// Also set some defaults that aren't defined in board files (but in
 			// common.go, probably).
 			methodNames := map[string][]string{
-				"baseSensors":          definedGlobals["Sensors"],
-				"dummyAddressableLEDs": definedGlobals["AddressableLEDs"],
-				"dummyBattery":         definedGlobals["Power"],
-				"noButtons":            definedGlobals["Buttons"],
+				"baseSensors":  definedGlobals["Sensors"],
+				"dummyBattery": definedGlobals["Power"],
+				"noButtons":    definedGlobals["Buttons"],
 			}
 			for _, decl := range f.Decls {
 				if decl, ok := decl.(*ast.FuncDecl); ok {

@@ -8,6 +8,10 @@ import (
 	"tinygo.org/x/drivers"
 )
 
+var (
+	AddressableLEDs LEDArray = dummyAddressableLEDs{}
+)
+
 // Settings for the simulator. These can be modified at any time, but it is
 // recommended to modify them before configuring any of the board peripherals.
 //
@@ -85,6 +89,26 @@ func (c ChargeState) String() string {
 	case Discharging:
 		return "discharging"
 	}
+}
+
+// A LED array is a sequence of individually addressable LEDs (like WS2812).
+type LEDArray interface {
+	// Configure the LED array. This needs to be called before any other method
+	// (except Len).
+	Configure()
+
+	// Return the length of the LED array.
+	Len() int
+
+	// Set a given pixel to the RGB value. The index must be in bounds,
+	// otherwise this method will panic. The value is not immediately visible,
+	// call Update() to update the pixel array.
+	// Note that LED arrays are usually indexed from the end, because of the way
+	// data is sent to them.
+	SetRGB(index int, r, g, b uint8)
+
+	// Update the pixel array to the values previously set in SetRGB.
+	Update()
 }
 
 // The display interface shared by all supported displays.
@@ -225,14 +249,21 @@ func (approx *batteryApproximation) approximate(microvolts uint32) int8 {
 }
 
 type dummyAddressableLEDs struct {
-	Data []pixel.LinearGRB888
 }
 
-func (l *dummyAddressableLEDs) Configure() {
+func (l dummyAddressableLEDs) Configure() {
 	// Nothing to do here.
 }
 
-func (l *dummyAddressableLEDs) Update() {
+func (l dummyAddressableLEDs) Len() int {
+	return 0 // always zero
+}
+
+func (l dummyAddressableLEDs) SetRGB(i int, r, g, b uint8) {
+	panic("no LEDs on this board")
+}
+
+func (l dummyAddressableLEDs) Update() {
 	// Nothing to do here.
 }
 

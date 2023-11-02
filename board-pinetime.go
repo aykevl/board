@@ -25,11 +25,10 @@ const (
 )
 
 var (
-	Power           = mainBattery{}
-	Sensors         = allSensors{}
-	Display         = mainDisplay{}
-	Buttons         = &singleButton{}
-	AddressableLEDs = dummyAddressableLEDs{}
+	Power   = mainBattery{}
+	Sensors = allSensors{}
+	Display = mainDisplay{}
+	Buttons = &singleButton{}
 )
 
 func init() {

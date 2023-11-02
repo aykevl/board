@@ -32,12 +32,15 @@ const (
 // Support varies by board, but all boards have the following peripherals
 // defined.
 var (
-	Power           = simulatedPower{}
-	Sensors         = &simulatedSensors{}
-	Display         = mainDisplay{}
-	Buttons         = buttonsConfig{}
-	AddressableLEDs = simulatedLEDs{}
+	Power   = simulatedPower{}
+	Sensors = &simulatedSensors{}
+	Display = mainDisplay{}
+	Buttons = buttonsConfig{}
 )
+
+func init() {
+	AddressableLEDs = &simulatedLEDs{}
+}
 
 type simulatedPower struct{}
 
@@ -315,27 +318,40 @@ func (s *simulatedSensors) Temperature() int32 {
 }
 
 type simulatedLEDs struct {
-	Data []pixel.RGB888
+	data []pixel.RGB888
 }
 
-// Initialize the addressable LEDs. This must be called once before writing data
-// to the Data slice.
+// Initialize the addressable LEDs.
 //
 // The way to determine whether there are addressable LEDs on a given board, is
 // to configure them and then check the length of board.AddressableLEDs.Data.
 func (l *simulatedLEDs) Configure() {
 	startWindow()
-	l.Data = make([]pixel.RGB888, Simulator.AddressableLEDs)
+	l.data = make([]pixel.RGB888, Simulator.AddressableLEDs)
 	l.Update()
 }
 
-// Update the LEDs with the color data in the Data field.
-//
-// Data[0] typically refers to the last color in the array, not the first, due
-// to the way these addressable LEDs are daisy-chained.
+func (l *simulatedLEDs) Len() int {
+	return len(l.data)
+}
+
+func (l *simulatedLEDs) SetRGB(i int, r, g, b uint8) {
+	c := pixel.LinearGRB888{
+		R: r,
+		G: g,
+		B: b,
+	}.RGBA()
+	l.data[i] = pixel.RGB888{
+		R: c.R,
+		G: c.G,
+		B: c.B,
+	}
+}
+
+// Update the LEDs with the color data.
 func (l *simulatedLEDs) Update() {
-	cmd := fmt.Sprintf("addressable-leds %d", len(l.Data))
-	windowSendCommand(cmd, pixelsToBytes(l.Data))
+	cmd := fmt.Sprintf("addressable-leds %d", len(l.data))
+	windowSendCommand(cmd, pixelsToBytes(l.data))
 }
 
 var (

@@ -47,12 +47,6 @@ func main() {
 		Steps() uint32
 		Temperature() int32
 	} = board.Sensors
-
-	// Assert that board.AddressableLEDs uses the usual interface.
-	var _ interface {
-		Configure()
-		Update()
-	} = &board.AddressableLEDs
 }
 
 func checkScreen[T pixel.Color](display board.Displayer[T]) {

@@ -19,12 +19,15 @@ const (
 )
 
 var (
-	Power           = dummyBattery{state: UnknownBattery}
-	Sensors         = &allSensors{}
-	Display         = mainDisplay{}
-	Buttons         = &gpioButtons{}
-	AddressableLEDs = ws2812LEDs{Data: make([]pixel.LinearGRB888, 2)}
+	Power   = dummyBattery{state: UnknownBattery}
+	Sensors = &allSensors{}
+	Display = mainDisplay{}
+	Buttons = &gpioButtons{}
 )
+
+func init() {
+	AddressableLEDs = &ws2812LEDs{}
+}
 
 type allSensors struct {
 	baseSensors
@@ -213,15 +216,27 @@ func (b *gpioButtons) NextEvent() KeyEvent {
 }
 
 type ws2812LEDs struct {
-	Data []pixel.LinearGRB888
+	data [2]pixel.LinearGRB888
 }
 
 func (l *ws2812LEDs) Configure() {
 	machine.WS2812.Configure(machine.PinConfig{Mode: machine.PinOutput})
 }
 
+func (l *ws2812LEDs) Len() int {
+	return len(l.data)
+}
+
+func (l *ws2812LEDs) SetRGB(i int, r, g, b uint8) {
+	l.data[i] = pixel.LinearGRB888{
+		R: r,
+		G: g,
+		B: b,
+	}
+}
+
 // Send pixel data to the LEDs.
 func (l *ws2812LEDs) Update() {
 	ws := ws2812.Device{Pin: machine.WS2812}
-	ws.Write(pixelsToBytes(l.Data))
+	ws.Write(pixelsToBytes(l.data[:]))
 }
