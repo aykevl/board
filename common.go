@@ -89,7 +89,7 @@ func (c ChargeState) String() string {
 
 // The display interface shared by all supported displays.
 type Displayer[T pixel.Color] interface {
-	// The display size in pixels. This must match Display.Size().
+	// The display size in pixels.
 	Size() (width, height int16)
 
 	// Write data to the display in the usual row-major order (which matches the
