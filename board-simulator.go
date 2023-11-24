@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -146,12 +146,14 @@ func (s *fyneScreen) Display() error {
 	return nil
 }
 
-func (s *fyneScreen) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
+func (s *fyneScreen) DrawBitmap(x, y int16, image pixel.Image[pixel.RGB888]) error {
 	displayWidth, displayHeight := s.Size()
+	width, height := image.Size()
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
-		x+width > displayWidth || y+height > displayHeight {
+		int(x)+width > int(displayWidth) || int(y)+height > int(displayHeight) {
 		return errors.New("board: drawing out of bounds")
 	}
+	buf := image.RawBuffer()
 	drawStart := time.Now()
 	lastUpdate := drawStart
 	for bufy := 0; bufy < int(height); bufy++ {
@@ -318,7 +320,7 @@ func (s *simulatedSensors) Temperature() int32 {
 }
 
 type simulatedLEDs struct {
-	data []pixel.RGB888
+	data []byte
 }
 
 // Initialize the addressable LEDs.
@@ -327,31 +329,24 @@ type simulatedLEDs struct {
 // to configure them and then check the length of board.AddressableLEDs.Data.
 func (l *simulatedLEDs) Configure() {
 	startWindow()
-	l.data = make([]pixel.RGB888, Simulator.AddressableLEDs)
+	l.data = make([]byte, Simulator.AddressableLEDs*3)
 	l.Update()
 }
 
 func (l *simulatedLEDs) Len() int {
-	return len(l.data)
+	return len(l.data) / 3
 }
 
 func (l *simulatedLEDs) SetRGB(i int, r, g, b uint8) {
-	c := pixel.LinearGRB888{
-		R: r,
-		G: g,
-		B: b,
-	}.RGBA()
-	l.data[i] = pixel.RGB888{
-		R: c.R,
-		G: c.G,
-		B: c.B,
-	}
+	l.data[i*3+0] = r
+	l.data[i*3+1] = g
+	l.data[i*3+2] = b
 }
 
 // Update the LEDs with the color data.
 func (l *simulatedLEDs) Update() {
-	cmd := fmt.Sprintf("addressable-leds %d", len(l.data))
-	windowSendCommand(cmd, pixelsToBytes(l.data))
+	cmd := fmt.Sprintf("addressable-leds %d", l.Len())
+	windowSendCommand(cmd, l.data)
 }
 
 var (

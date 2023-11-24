@@ -8,9 +8,9 @@ import (
 	"machine"
 	"time"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/bma42x"
+	"tinygo.org/x/drivers/pixel"
 	"tinygo.org/x/drivers/st7789"
 )
 
@@ -126,14 +126,14 @@ func getSPI0() machine.SPI {
 
 type mainDisplay struct{}
 
-var display *st7789.Device
+var display *st7789.DeviceOf[pixel.RGB444BE]
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB444BE] {
 	// Configure the display.
 	// RGB444 reduces theoretic update time by up to 25%, from 115.2ms to 86.4ms
 	// (28.8ms reduction).
 	spi := getSPI0()
-	disp := st7789.New(spi,
+	disp := st7789.NewOf[pixel.RGB444BE](spi,
 		machine.LCD_RESET,
 		machine.LCD_RS, // data/command
 		machine.LCD_CS,
@@ -147,7 +147,6 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB444BE] {
 		VSyncLines: 32, // needed for VBlank, not sure why
 	})
 	disp.EnableBacklight(true) // disable the backlight
-	disp.SetColorFormat(st7789.ColorRGB444)
 
 	// Initialize these pins as regular pins too, for WaitForVBlank.
 	machine.LCD_SCK.Configure(machine.PinConfig{Mode: machine.PinOutput})

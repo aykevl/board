@@ -7,9 +7,9 @@ import (
 	"math/bits"
 	"time"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/lis3dh"
+	"tinygo.org/x/drivers/pixel"
 	"tinygo.org/x/drivers/shifter"
 	"tinygo.org/x/drivers/st7735"
 	"tinygo.org/x/drivers/ws2812"
@@ -180,7 +180,7 @@ func (b *buttonsConfig) NextEvent() KeyEvent {
 }
 
 type ws2812LEDs struct {
-	data [5]pixel.LinearGRB888
+	data [5]colorGRB
 }
 
 func (l *ws2812LEDs) Configure() {
@@ -192,7 +192,7 @@ func (l *ws2812LEDs) Len() int {
 }
 
 func (l *ws2812LEDs) SetRGB(i int, r, g, b uint8) {
-	l.data[i] = pixel.LinearGRB888{
+	l.data[i] = colorGRB{
 		R: r,
 		G: g,
 		B: b,

@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/aykevl/board"
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/pixel"
 )
 
 func main() {

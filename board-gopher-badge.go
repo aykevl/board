@@ -7,9 +7,9 @@ import (
 	"math/bits"
 	"time"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/lis3dh"
+	"tinygo.org/x/drivers/pixel"
 	"tinygo.org/x/drivers/st7789"
 	"tinygo.org/x/drivers/ws2812"
 )
@@ -73,7 +73,7 @@ func (s *allSensors) Acceleration() (x, y, z int32) {
 
 type mainDisplay struct{}
 
-var display st7789.Device
+var display st7789.DeviceOf[pixel.RGB565BE]
 
 func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 	machine.SPI0.Configure(machine.SPIConfig{
@@ -92,7 +92,7 @@ func (d mainDisplay) Configure() Displayer[pixel.RGB565BE] {
 		Frequency: 62_500_000, // datasheet for st7789 says 16ns (62.5MHz) is the max clock speed
 	})
 
-	display = st7789.New(machine.SPI0,
+	display = st7789.NewOf[pixel.RGB565BE](machine.SPI0,
 		machine.TFT_RST,       // TFT_RESET
 		machine.TFT_WRX,       // TFT_DC
 		machine.TFT_CS,        // TFT_CS
@@ -216,7 +216,7 @@ func (b *gpioButtons) NextEvent() KeyEvent {
 }
 
 type ws2812LEDs struct {
-	data [2]pixel.LinearGRB888
+	data [2]colorGRB
 }
 
 func (l *ws2812LEDs) Configure() {
@@ -228,7 +228,7 @@ func (l *ws2812LEDs) Len() int {
 }
 
 func (l *ws2812LEDs) SetRGB(i int, r, g, b uint8) {
-	l.data[i] = pixel.LinearGRB888{
+	l.data[i] = colorGRB{
 		R: r,
 		G: g,
 		B: b,

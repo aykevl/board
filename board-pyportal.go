@@ -6,9 +6,9 @@ import (
 	"machine"
 	"time"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/ili9341"
+	"tinygo.org/x/drivers/pixel"
 	"tinygo.org/x/drivers/touch/resistive"
 )
 

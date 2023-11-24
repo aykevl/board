@@ -4,8 +4,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/pixel"
 )
 
 var (
@@ -116,13 +116,10 @@ type Displayer[T pixel.Color] interface {
 	// The display size in pixels.
 	Size() (width, height int16)
 
-	// Write data to the display in the usual row-major order (which matches the
-	// usual order of text on a page: first left to right and then each line top
-	// to bottom).
-	//
-	// TODO: this interface is likely to change because it requires unsafely
-	// casting a []T to []uint8 in user code.
-	DrawRGBBitmap8(x, y int16, buf []uint8, w, h int16) error
+	// DrawBitmap copies the bitmap to the internal buffer on the screen at the
+	// given coordinates. It returns once the image data has been sent
+	// completely.
+	DrawBitmap(x, y int16, buf pixel.Image[T]) error
 
 	// Display the written image on screen. This call may or may not be
 	// necessary depending on the screen, but it's better to call it anyway.
@@ -267,9 +264,15 @@ func (l dummyAddressableLEDs) Update() {
 	// Nothing to do here.
 }
 
+type colorFormat interface {
+	colorGRB
+}
+
+type colorGRB struct{ G, R, B uint8 }
+
 // Convert pixel data to a byte slice, for sending it to WS2812 LEDs for
 // example.
-func pixelsToBytes[T pixel.Color](pix []T) []byte {
+func pixelsToBytes[T colorFormat](pix []T) []byte {
 	if len(pix) == 0 {
 		return nil
 	}

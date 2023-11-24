@@ -10,8 +10,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/aykevl/tinygl/pixel"
 	"tinygo.org/x/drivers"
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -62,8 +62,15 @@ type gbaDisplay struct{}
 
 var displayFrameBuffer = (*[160 * 240]volatile.Register16)(unsafe.Pointer(uintptr(gba.MEM_VRAM)))
 
+var errOutOfBounds = errors.New("rectangle coordinates outside display area")
+
+const (
+	displayWidth  = 240
+	displayHeight = 160
+)
+
 func (d gbaDisplay) Size() (x, y int16) {
-	return 240, 160
+	return displayWidth, displayHeight
 }
 
 func (d gbaDisplay) Display() error {
@@ -71,14 +78,21 @@ func (d gbaDisplay) Display() error {
 	return nil
 }
 
-func (d gbaDisplay) DrawRGBBitmap8(x, y int16, buf []byte, width, height int16) error {
+func (d gbaDisplay) DrawBitmap(x, y int16, buf pixel.Image[pixel.RGB555]) error {
+	width, height := buf.Size()
+	if x < 0 || y < 0 || int(x)+width > displayWidth || int(y)+height > displayHeight {
+		return errOutOfBounds
+	}
+
+	// TODO: try to do a 4-byte memcpy if possible. That should significantly
+	// speed up the copying of this image.
 	for bufY := 0; bufY < int(height); bufY++ {
 		for bufX := 0; bufX < int(width); bufX++ {
-			index := bufY*int(width) + bufX
-			val := uint16(buf[index*2+0]) + uint16(buf[index*2+1])<<8
-			displayFrameBuffer[(int(y)+bufY)*240+int(x)+bufX].Set(val)
+			val := buf.Get(bufX, bufY)
+			displayFrameBuffer[(int(y)+bufY)*240+int(x)+bufX].Set(uint16(val))
 		}
 	}
+
 	return nil
 }
 
