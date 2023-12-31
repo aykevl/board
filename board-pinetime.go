@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	Power   = mainBattery{}
+	Power   = &mainBattery{}
 	Sensors = allSensors{}
 	Display = mainDisplay{}
 	Buttons = &singleButton{}
@@ -45,6 +45,8 @@ func init() {
 }
 
 type mainBattery struct {
+	lastPercent int8
+	chargePPM   int32
 }
 
 var batteryPercent = batteryApproximation{
@@ -54,7 +56,7 @@ var batteryPercent = batteryApproximation{
 	percents: [6]int8{0, 10, 25, 50, 75, 100},
 }
 
-func (b mainBattery) Configure() {
+func (b *mainBattery) Configure() {
 	chargeIndicationPin.Configure(machine.PinConfig{Mode: machine.PinInput})
 	powerPresencePin.Configure(machine.PinConfig{Mode: machine.PinInput})
 
@@ -69,7 +71,7 @@ func (b mainBattery) Configure() {
 	})
 }
 
-func (b mainBattery) Status() (status ChargeState, microvolts uint32, percent int8) {
+func (b *mainBattery) Status() (status ChargeState, microvolts uint32, percent int8) {
 	rawValue := machine.ADC{Pin: batteryVoltagePin}.Get()
 	// Formula to calculate microvolts:
 	//   rawValue * 6000_000 / 0x10000
@@ -86,8 +88,21 @@ func (b mainBattery) Status() (status ChargeState, microvolts uint32, percent in
 	} else {
 		status = Discharging
 	}
+
 	// TODO: percent while charging
-	percent = batteryPercent.approximate(microvolts)
+	percentPPM := batteryPercent.approximatePPM(microvolts)
+	if b.chargePPM == 0 {
+		// first measurement, probably
+		b.chargePPM = percentPPM
+	} else {
+		b.chargePPM = (b.chargePPM*255 + percentPPM) / 256
+	}
+	newPercent := b.chargePPM / 10000
+	if newPercent < int32(b.lastPercent) || newPercent > int32(b.lastPercent)+1 {
+		// do some basic hysteresis
+		b.lastPercent = int8(newPercent)
+	}
+	percent = b.lastPercent
 	return
 }
 

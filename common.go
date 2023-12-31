@@ -245,6 +245,27 @@ func (approx *batteryApproximation) approximate(microvolts uint32) int8 {
 	return 100
 }
 
+func (approx *batteryApproximation) approximatePPM(microvolts uint32) int32 {
+	if microvolts <= uint32(approx.voltages[0])*1000 {
+		return 0 // below the lowest value
+	}
+	for i, v := range approx.voltages {
+		if uint32(v)*1000 > microvolts {
+			voltStart := uint32(approx.voltages[i-1]) // mV
+			voltEnd := uint32(v)                      // mV
+			percentStart := approx.percents[i-1]
+			percentEnd := approx.percents[i]
+			voltOffset := microvolts - voltStart*1000 // µV
+			voltDiff := voltEnd - voltStart           // mV
+			percentDiff := percentEnd - percentStart
+			percentOffset := voltOffset * uint32(percentDiff) * 10 / voltDiff
+			return int32(percentStart)*10000 + int32(percentOffset)
+		}
+	}
+	// Outside the table, so must be 100%.
+	return 1000_000
+}
+
 type dummyAddressableLEDs struct {
 }
 
