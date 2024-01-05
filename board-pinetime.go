@@ -61,13 +61,14 @@ func (b *mainBattery) Configure() {
 	powerPresencePin.Configure(machine.PinConfig{Mode: machine.PinInput})
 
 	// Configure the ADC.
-	// 256 samples are perhaps a little bit overkill, but it does seem to result
-	// in a slightly better value than 128.
+	// Using just one sample (instead of 256 for example), because we have our
+	// own filtering and long sample times actually drain a lot of power: around
+	// 6µA when measuing the battery every 5 seconds.
 	machine.InitADC()
 	machine.ADC{Pin: batteryVoltagePin}.Configure(machine.ADCConfig{
 		Reference:  3000,
 		SampleTime: 40, // use the longest acquisition time
-		Samples:    256,
+		Samples:    1,
 	})
 }
 
