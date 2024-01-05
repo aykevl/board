@@ -62,10 +62,14 @@ func (p simulatedPower) Configure() {
 func (p simulatedPower) Status() (state ChargeState, microvolts uint32, percent int8) {
 	// Pretend we're running on battery power and the battery is at 3.7V
 	// (typical lipo voltage).
+	actualMicrovolts := uint32(3700_000)
 	// Randomize the output a bit to fake ADC noise (programs should be able to
 	// deal with that).
-	microvolts = 3700_000 + rand.Uint32()%16384 - 8192
-	return Discharging, microvolts, lithumBatteryApproximation.approximate(microvolts)
+	microvolts = actualMicrovolts + rand.Uint32()%16384 - 8192
+	// Use a stable percent though, otherwise BLE battery level notifications
+	// will fluctuate way too much.
+	percent = lithumBatteryApproximation.approximate(actualMicrovolts)
+	return Discharging, microvolts, percent
 }
 
 type mainDisplay struct{}
