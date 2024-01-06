@@ -252,9 +252,13 @@ func (b buttonsConfig) NextEvent() KeyEvent {
 }
 
 type simulatedSensors struct {
-	configured drivers.Measurement
-	accel      [3]int32
-	temp       int32
+	configured  drivers.Measurement
+	lock        sync.Mutex
+	accelSource [3]float64
+	stepsSource uint32
+	accel       [3]int32
+	steps       uint32
+	temp        int32
 }
 
 // Configure configures all sensors as specified in the which parameter.
@@ -275,12 +279,14 @@ func (s *simulatedSensors) Update(which drivers.Measurement) error {
 	}
 
 	if which&drivers.Acceleration != 0 {
-		// Simulate the device in an upright position (like how you'd hold a
-		// phone when making a photo in portrait mode).
-		// Also add some noise to make the values more realistic.
-		s.accel[0] = rand.Int31n(30_000) - 15_000            // x
-		s.accel[1] = rand.Int31n(30_000) - 15_000 + 1000_000 // y + added gravity
-		s.accel[2] = rand.Int31n(30_000) - 15_000            // z
+		s.lock.Lock()
+		// Add some noise to the accelerometer to make the values more
+		// realistic.
+		s.accel[0] = rand.Int31n(30_000) - 15_000 + int32(s.accelSource[0]*1000_000) // x
+		s.accel[1] = rand.Int31n(30_000) - 15_000 + int32(s.accelSource[1]*1000_000) // y
+		s.accel[2] = rand.Int31n(30_000) - 15_000 + int32(s.accelSource[2]*1000_000) // z
+		s.steps = s.stepsSource
+		s.lock.Unlock()
 	}
 	if which&drivers.Temperature != 0 {
 		// Temperature around 20°C (with some jitter thrown in for a good
@@ -308,9 +314,9 @@ func (s *simulatedSensors) Acceleration() (x, y, z int32) {
 // Steps returns the number of steps since the step counter started.
 // The uint32 value is assumed to be large enough for all practical use cases.
 //
-// The simulator currently returns the fixed value 0.
+// The value can be incremented from the simulator.
 func (s *simulatedSensors) Steps() (steps uint32) {
-	return 0 // TODO adjust from the UI
+	return s.steps
 }
 
 // Temperature returns the temperature that was last read from the sensor.
@@ -466,6 +472,20 @@ func windowListenEvents() {
 				screen.touches[0].Y = y
 			}
 			screen.touchesLock.Unlock()
+		case "accel":
+			var x, y, z float64
+			fmt.Sscanf(line, "%s %f %f %f", &cmd, &x, &y, &z)
+			Sensors.lock.Lock()
+			Sensors.accelSource[0] = x
+			Sensors.accelSource[1] = y
+			Sensors.accelSource[2] = z
+			Sensors.lock.Unlock()
+		case "steps":
+			var n uint32
+			fmt.Sscanf(line, "%s %d %d", &cmd, &n)
+			Sensors.lock.Lock()
+			Sensors.stepsSource = n
+			Sensors.lock.Unlock()
 		default:
 			fmt.Fprintln(os.Stderr, "unknown command:", cmd)
 		}

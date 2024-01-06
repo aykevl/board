@@ -25,12 +25,14 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
@@ -145,12 +147,36 @@ func windowMain() {
 	})
 	ledsWidget.Hidden = true
 
+	// X/Y/Z acceleration.
+	// Simulate the device in an upright position (like how you'd hold a phone
+	// when making a photo in portrait mode).
+	var accelX, accelY, accelZ = 0.0, 1.0, 0.0
+	accelContainer := container.New(layout.NewHBoxLayout(),
+		widget.NewLabel(strconv.FormatFloat(accelX, 'f', 2, 64)),
+		widget.NewLabel(strconv.FormatFloat(accelY, 'f', 2, 64)),
+		widget.NewLabel(strconv.FormatFloat(accelZ, 'f', 2, 64)))
+	fmt.Printf("accel %f %f %f\n", accelX, accelY, accelZ)
+
+	// Step count.
+	var stepCount uint32
+	stepCountWidget := widget.NewLabel("0")
+	stepCountIncrementButton := widget.NewButton("+", func() {
+		stepCount++
+		stepCountWidget.SetText(strconv.FormatUint(uint64(stepCount), 10))
+		fmt.Printf("steps %d\n", stepCount)
+	})
+	stepCountContainer := container.New(layout.NewHBoxLayout(), stepCountWidget, layout.NewSpacer(), stepCountIncrementButton)
+
+	paramGrid := container.New(layout.NewGridLayout(2),
+		widget.NewLabel("Accel X/Y/Z:"), accelContainer,
+		widget.NewLabel("Steps:"), stepCountContainer)
+
 	// Create a window.
 	a := app.New()
 	w := a.NewWindow("Simulator")
 	w.SetPadded(false)
 	w.SetFixedSize(true)
-	w.SetContent(fyne.NewContainerWithLayout(layout.NewVBoxLayout(), display, ledsWidget))
+	w.SetContent(fyne.NewContainerWithLayout(layout.NewVBoxLayout(), display, ledsWidget, paramGrid))
 
 	// Listen for keyboard events, and translate them to board API keycodes.
 	if deskCanvas, ok := w.Canvas().(desktop.Canvas); ok {
