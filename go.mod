@@ -5,7 +5,7 @@ go 1.20
 require (
 	fyne.io/fyne/v2 v2.3.4
 	golang.org/x/image v0.3.0
-	tinygo.org/x/drivers v0.26.1-0.20231124130000-fef6564044f9
+	tinygo.org/x/drivers v0.27.1-0.20240421102638-4d4ca731bbfd
 )
 
 require (
