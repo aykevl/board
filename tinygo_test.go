@@ -19,6 +19,7 @@ var boards = []string{
 	"pybadge",
 	"pyportal",
 	"simulator",
+	"thumby",
 }
 
 func isXtensa(board string) bool {
