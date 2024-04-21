@@ -674,5 +674,5 @@ honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
-tinygo.org/x/drivers v0.26.1-0.20231124130000-fef6564044f9 h1:7J3vj9E/gGhMCKLZVGiw/7SUnAjHjIOsyMbD0TibpRc=
-tinygo.org/x/drivers v0.26.1-0.20231124130000-fef6564044f9/go.mod h1:X7utcg3yfFUFuKLOMTZD56eztXMjpkcf8OHldfTBsjw=
+tinygo.org/x/drivers v0.27.1-0.20240421102638-4d4ca731bbfd h1:GX+r9ca5XTlzRaCdfIoFGlm7M/o2rrC3X7G2sbgOe+c=
+tinygo.org/x/drivers v0.27.1-0.20240421102638-4d4ca731bbfd/go.mod h1:q/mU8G/wz821p8xXqbkBACOlmZFDHXd//DnYnCW+dDQ=
