@@ -12,6 +12,7 @@ import (
 
 var boards = []string{
 	// Please keep this list sorted!
+	"badger2040",
 	"gameboy-advance",
 	"gopher-badge",
 	"mch2022",
